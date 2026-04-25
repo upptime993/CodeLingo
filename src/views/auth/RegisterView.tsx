@@ -5,6 +5,7 @@ import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 export default function RegisterView() {
   const navigate = useNavigate();
@@ -25,8 +26,9 @@ export default function RegisterView() {
       login(res);
       toast.success(`Yeay! Akun berhasil dibuat. Selamat belajar, ${res.user.username}! 🎉`);
       navigate('/belajar');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Daftar gagal. Coba lagi!');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message || 'Daftar gagal. Coba lagi!');
     } finally {
       setLoading(false);
     }

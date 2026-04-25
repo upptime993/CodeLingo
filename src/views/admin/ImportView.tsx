@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Upload, CheckCircle2, XCircle, Download, Copy } from 'lucide-react';
 import client from '../../api/client';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 import type { ImportPayload } from '../../types';
 
 // ─── Sample JSON dengan semua 5 tipe soal ─────────────────────────────────────
@@ -116,8 +117,8 @@ export default function ImportView() {
       setParsed(data);
       setParseError('');
       toast.success('JSON valid! 🎉');
-    } catch (e: any) {
-      setParseError(e.message);
+    } catch (e: unknown) {
+      setParseError(e instanceof Error ? e.message : 'Unknown parse error');
       setParsed(null);
     }
   };
@@ -131,8 +132,9 @@ export default function ImportView() {
       setRawJson('');
       setParsed(null);
       toast.success('Impor berhasil! 🎉');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Impor gagal! Cek format JSON kamu.');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message || 'Impor gagal! Cek format JSON kamu.');
     } finally {
       setImporting(false);
     }
