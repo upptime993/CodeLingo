@@ -94,6 +94,8 @@ export default function LoginView() {
               />
               <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2"
                 style={{ color: 'var(--color-text-dim)' }}
+                aria-label={showPw ? 'Sembunyikan password' : 'Tampilkan password'}
+                title={showPw ? 'Sembunyikan password' : 'Tampilkan password'}
                 onClick={() => setShowPw(!showPw)}>
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
