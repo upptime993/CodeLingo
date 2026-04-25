@@ -37,7 +37,7 @@ router.post('/courses', async (req, res) => {
         res.status(201).json(course);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal membuat kelas.' });
     }
 });
 router.put('/courses/:id', async (req, res) => {
@@ -50,7 +50,7 @@ router.put('/courses/:id', async (req, res) => {
         res.json(course);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui kelas.' });
     }
 });
 router.delete('/courses/:id', async (req, res) => {
@@ -80,7 +80,7 @@ router.post('/chapters', async (req, res) => {
         res.status(201).json(chapter);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal membuat bab.' });
     }
 });
 router.put('/chapters/:id', async (req, res) => {
@@ -93,7 +93,7 @@ router.put('/chapters/:id', async (req, res) => {
         res.json(chapter);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui bab.' });
     }
 });
 router.delete('/chapters/:id', async (req, res) => {
@@ -119,7 +119,7 @@ router.post('/levels', async (req, res) => {
         res.status(201).json(level);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal membuat level.' });
     }
 });
 router.put('/levels/:id', async (req, res) => {
@@ -132,7 +132,7 @@ router.put('/levels/:id', async (req, res) => {
         res.json(level);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui level.' });
     }
 });
 router.delete('/levels/:id', async (req, res) => {
@@ -160,7 +160,7 @@ router.put('/users/:id', async (req, res) => {
         res.json(user);
     }
     catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui user.' });
     }
 });
 // ── JSON IMPORT ───────────────────────────────────────────────────────────────
@@ -208,7 +208,8 @@ router.post('/import', async (req, res) => {
     }
     catch (err) {
         await session.abortTransaction();
-        res.status(500).json({ message: `Gagal impor: ${err.message}` });
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        res.status(500).json({ message: `Gagal impor: ${message}` });
     }
     finally {
         session.endSession();

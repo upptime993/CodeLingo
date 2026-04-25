@@ -11,10 +11,9 @@ const userSchema = new Schema({
     hearts: { type: Number, default: 5, min: 0, max: 5 },
 }, { timestamps: true });
 // Auto-generate avatar from username using DiceBear
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
     if (!this.avatar) {
         this.avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(this.username)}`;
     }
-    next();
 });
 export default mongoose.model('User', userSchema);

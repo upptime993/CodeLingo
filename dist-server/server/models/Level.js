@@ -1,9 +1,15 @@
 import mongoose, { Schema } from 'mongoose';
 const questionSchema = new Schema({
-    type: { type: String, enum: ['multiple_choice', 'fill_blank', 'true_false'], required: true },
+    type: {
+        type: String,
+        enum: ['multiple_choice', 'fill_blank', 'true_false', 'code_arrange', 'match'],
+        required: true,
+    },
     prompt: { type: String, required: true },
     options: [String],
     tokens: [String],
+    codeBlocks: [String],
+    matchPairs: [{ left: String, right: String }],
     correctAnswer: { type: String, required: true },
     explanation: { type: String, default: '' },
     xpReward: { type: Number, default: 10 },

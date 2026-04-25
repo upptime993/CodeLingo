@@ -299,29 +299,44 @@ export default function LevelsView() {
   const [loading, setLoading] = useState(false);
   const [expandedLevel, setExpandedLevel] = useState<string | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    client.get<Course[]>('/admin/courses').then(r => {
-      setCourses(r.data);
-      if (r.data[0]) setSelCourse(r.data[0]._id);
-    });
+    setError(null);
+    client.get<Course[]>('/admin/courses')
+      .then(r => {
+        setCourses(r.data);
+        if (r.data[0] && !selCourse) setSelCourse(r.data[0]._id);
+      })
+      .catch(() => setError('Gagal memuat daftar kelas.'));
   }, []);
 
   useEffect(() => {
-    if (!selCourse) return;
-    client.get<Chapter[]>(`/admin/chapters?courseId=${selCourse}`).then(r => {
-      setChapters(r.data);
-      if (r.data[0]) setSelChapter(r.data[0]._id);
-      else { setSelChapter(''); setLevels([]); }
-    });
+    if (!selCourse) { setChapters([]); setSelChapter(''); return; }
+    setError(null);
+    client.get<Chapter[]>(`/admin/chapters?courseId=${selCourse}`)
+      .then(r => {
+        setChapters(r.data);
+        if (r.data[0]) setSelChapter(r.data[0]._id);
+        else { setSelChapter(''); setLevels([]); }
+      })
+      .catch(() => setError('Gagal memuat daftar bab.'));
   }, [selCourse]);
 
   useEffect(() => {
-    if (!selChapter) return;
-    client.get<LevelFull[]>(`/admin/levels?chapterId=${selChapter}`).then(r => setLevels(r.data));
+    if (!selChapter) { setLevels([]); return; }
+    setError(null);
+    client.get<LevelFull[]>(`/admin/levels?chapterId=${selChapter}`)
+      .then(r => setLevels(r.data))
+      .catch(() => setError('Gagal memuat daftar level.'));
   }, [selChapter]);
 
   const loadLevels = () => {
-    if (selChapter) client.get<LevelFull[]>(`/admin/levels?chapterId=${selChapter}`).then(r => setLevels(r.data));
+    if (selChapter) {
+      client.get<LevelFull[]>(`/admin/levels?chapterId=${selChapter}`)
+        .then(r => setLevels(r.data))
+        .catch(() => toast.error('Gagal memuat ulang daftar level.'));
+    }
   };
 
   const openAdd = () => {
@@ -393,6 +408,11 @@ export default function LevelsView() {
 
   return (
     <div className="p-6 max-w-5xl">
+      {error && (
+        <div className="p-4 bg-red-900/30 border border-red-500/50 rounded-xl mb-4">
+          <p className="text-red-400 font-600 text-sm">{error}</p>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
