@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
@@ -7,7 +7,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 const router = Router();
 
 // ── POST /api/auth/register ──────────────────────────────────────────────────
-router.post('/register', async (req, res: Response) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
 
@@ -40,7 +40,7 @@ router.post('/register', async (req, res: Response) => {
 });
 
 // ── POST /api/auth/login ─────────────────────────────────────────────────────
-router.post('/login', async (req, res: Response) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
