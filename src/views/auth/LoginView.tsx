@@ -5,6 +5,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { authApi } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 export default function LoginView() {
   const navigate = useNavigate();
@@ -21,8 +22,9 @@ export default function LoginView() {
       login(res);
       toast.success(`Selamat datang kembali, ${res.user.username}! 👋`);
       navigate(res.user.role === 'admin' ? '/admin' : '/belajar');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Login gagal. Coba lagi ya!');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message || 'Login gagal. Coba lagi ya!');
     } finally {
       setLoading(false);
     }

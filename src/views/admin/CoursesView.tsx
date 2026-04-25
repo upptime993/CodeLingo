@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
 import client from '../../api/client';
 import type { Course } from '../../types';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 const EMPTY: Omit<Course, '_id' | 'chaptersCount' | 'levelsCount'> = {
   title: '', slug: '', description: '', icon: '📚', colorHex: '#C3F377',
@@ -33,8 +34,9 @@ export default function CoursesView() {
       else await client.put(`/admin/courses/${editId}`, form);
       toast.success(modal === 'add' ? 'Kelas berhasil ditambahkan!' : 'Kelas berhasil diperbarui!');
       closeModal(); load();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan.');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message || 'Gagal menyimpan.');
     } finally { setLoading(false); }
   };
 

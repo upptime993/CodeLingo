@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, X, Save } from 'lucide-rea
 import client from '../../api/client';
 import type { Course, Chapter, Question, QuestionType, MatchPair } from '../../types';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LevelFull {
@@ -357,8 +358,9 @@ export default function LevelsView() {
       toast.success(modal === 'add' ? '✅ Level berhasil ditambahkan!' : '✅ Level berhasil diperbarui!');
       setModal(null);
       loadLevels();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan level.');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message || 'Gagal menyimpan level.');
     } finally {
       setLoading(false);
     }

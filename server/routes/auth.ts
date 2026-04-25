@@ -34,7 +34,7 @@ router.post('/register', async (req, res: Response) => {
 
     const { password: _, ...userWithoutPassword } = user.toObject();
     res.status(201).json({ token, user: userWithoutPassword });
-  } catch (err: any) {
+  } catch {
     res.status(500).json({ message: 'Duh, ada error server. Coba lagi ya!' });
   }
 });

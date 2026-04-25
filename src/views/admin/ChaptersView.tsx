@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react';
 import client from '../../api/client';
 import type { Course, Chapter } from '../../types';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 export default function ChaptersView() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -51,8 +52,9 @@ export default function ChaptersView() {
       toast.success(modal === 'add' ? 'Bab ditambahkan!' : 'Bab diperbarui!');
       setModal(null);
       loadChapters();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan.');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
+      toast.error(message || 'Gagal menyimpan.');
     } finally { setLoading(false); }
   };
 
