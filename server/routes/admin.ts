@@ -40,8 +40,8 @@ router.post('/courses', async (req, res: Response) => {
   try {
     const course = await Course.create(req.body);
     res.status(201).json(course);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal membuat kelas.' });
   }
 });
 
@@ -50,8 +50,8 @@ router.put('/courses/:id', async (req, res: Response) => {
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!course) { res.status(404).json({ message: 'Kelas tidak ditemukan.' }); return; }
     res.json(course);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui kelas.' });
   }
 });
 
@@ -81,8 +81,8 @@ router.post('/chapters', async (req, res: Response) => {
   try {
     const chapter = await Chapter.create(req.body);
     res.status(201).json(chapter);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal membuat bab.' });
   }
 });
 
@@ -91,8 +91,8 @@ router.put('/chapters/:id', async (req, res: Response) => {
     const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!chapter) { res.status(404).json({ message: 'Bab tidak ditemukan.' }); return; }
     res.json(chapter);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui bab.' });
   }
 });
 
@@ -118,8 +118,8 @@ router.post('/levels', async (req, res: Response) => {
   try {
     const level = await Level.create(req.body);
     res.status(201).json(level);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal membuat level.' });
   }
 });
 
@@ -128,8 +128,8 @@ router.put('/levels/:id', async (req, res: Response) => {
     const level = await Level.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!level) { res.status(404).json({ message: 'Level tidak ditemukan.' }); return; }
     res.json(level);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui level.' });
   }
 });
 
@@ -154,8 +154,8 @@ router.put('/users/:id', async (req, res: Response) => {
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
     if (!user) { res.status(404).json({ message: 'User tidak ditemukan.' }); return; }
     res.json(user);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err: unknown) {
+    res.status(400).json({ message: err instanceof Error ? err.message : 'Gagal memperbarui user.' });
   }
 });
 
@@ -220,9 +220,10 @@ router.post('/import', async (req, res: Response) => {
       message: `Berhasil impor ${payload.chapters.length} bab, ${totalLevels} level, dan ${totalQuestions} soal!`,
       courseId: course._id,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     await session.abortTransaction();
-    res.status(500).json({ message: `Gagal impor: ${err.message}` });
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ message: `Gagal impor: ${message}` });
   } finally {
     session.endSession();
   }
