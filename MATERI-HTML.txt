@@ -1,0 +1,245 @@
+SILABUS FINAL HTML: BEGINNER → INTERMEDIATE → ADVANCED
+🟢 LEVEL 1: BEGINNER (Fondasi)
+Tujuan: Memahami apa itu HTML, cara kerjanya, dan bisa membuat halaman web sederhana.
+
+BAB 1: Pengenalan HTML
+1.1 Apa itu HTML?
+1.2 Sejarah singkat HTML (HTML1 → HTML5)
+1.3 Cara kerja HTML di browser
+1.4 Perbedaan HTML, CSS, dan JavaScript
+1.5 Tools yang dibutuhkan (VS Code, Browser, Live Server)
+1.6 Cara membuat file .html pertama
+1.7 Menjalankan file HTML di browser
+BAB 2: Struktur Dasar HTML
+2.1 Anatomi dokumen HTML
+2.2 <!DOCTYPE html> dan fungsinya
+2.3 Tag <html>, <head>, <body>
+2.4 Element, Tag, dan Attribute
+2.5 Tag pembuka dan penutup
+2.6 Self-closing tags (void elements)
+2.7 Nested elements (tag bersarang)
+2.8 Komentar HTML (<!-- -->)
+2.9 Indentasi & best practice penulisan
+BAB 3: Text & Formatting
+3.1 Heading (<h1> - <h6>)
+3.2 Paragraph (<p>)
+3.3 Line break (<br>) & horizontal rule (<hr>)
+3.4 Text formatting: <b>, <strong>, <i>, <em>
+3.5 <mark>, <small>, <del>, <ins>, <sub>, <sup>
+3.6 Blockquote (<blockquote>) & quote (<q>)
+3.7 Preformatted text (<pre>) & code (<code>)
+3.8 Entity characters (&nbsp;, &lt;, &amp;, dll.)
+BAB 4: Links (Hyperlinks)
+4.1 Tag anchor (<a>)
+4.2 Attribute href
+4.3 Link absolut vs relatif
+4.4 Attribute target (_blank, _self, dll.)
+4.5 Link ke email (mailto:)
+4.6 Link ke telepon (tel:)
+4.7 Link ke section (anchor link / bookmark)
+4.8 Attribute title, download, rel
+BAB 5: Images
+5.1 Tag <img> dan attribute src
+5.2 Attribute alt (penting untuk accessibility)
+5.3 width & height
+5.4 Format gambar (JPG, PNG, SVG, WebP, GIF)
+5.5 Path gambar (lokal vs URL)
+5.6 Image sebagai link
+BAB 6: Lists (Daftar)
+6.1 Unordered list (<ul>, <li>)
+6.2 Ordered list (<ol>, <li>)
+6.3 Attribute type, start, reversed pada <ol>
+6.4 Description list (<dl>, <dt>, <dd>)
+6.5 Nested list (list dalam list)
+BAB 7: Tables (Tabel)
+7.1 Struktur dasar (<table>, <tr>, <td>, <th>)
+7.2 <thead>, <tbody>, <tfoot>
+7.3 Attribute colspan & rowspan
+7.4 <caption> untuk judul tabel
+7.5 Border & styling dasar
+7.6 Best practice tabel
+BAB 8: Div, Span & Grouping
+8.1 Tag <div> (block-level)
+8.2 Tag <span> (inline)
+8.3 Perbedaan block vs inline element
+8.4 Grouping content dengan div
+8.5 Kapan pakai div, kapan pakai span
+🟡 LEVEL 2: INTERMEDIATE (Aplikatif)
+Tujuan: Bisa membuat website dengan struktur profesional, form interaktif, dan media.
+
+BAB 9: Forms & Input (Bagian 1 - Dasar)
+9.1 Tag <form> dan attribute (action, method)
+9.2 Tag <input> dan jenis-jenisnya
+9.3 Input type: text, password, email, number
+9.4 Input type: radio, checkbox
+9.5 Input type: date, time, datetime-local
+9.6 Input type: file, color, range
+9.7 Tag <label> dan pentingnya
+9.8 Attribute name, value, placeholder
+BAB 10: Forms & Input (Bagian 2 - Lanjutan)
+10.1 <textarea> untuk input panjang
+10.2 <select> & <option> (dropdown)
+10.3 <optgroup> untuk grouping option
+10.4 <button> (type: submit, reset, button)
+10.5 <fieldset> & <legend>
+10.6 <datalist> (autocomplete)
+10.7 Validasi HTML5 (required, min, max, pattern)
+10.8 Attribute autofocus, autocomplete, readonly, disabled
+10.9 Form submission flow
+BAB 11: Semantic HTML5
+11.1 Apa itu semantic HTML & mengapa penting
+11.2 <header> & <footer>
+11.3 <nav> untuk navigasi
+11.4 <main> untuk konten utama
+11.5 <article> untuk konten mandiri
+11.6 <section> untuk pengelompokan
+11.7 <aside> untuk konten sampingan
+11.8 <figure> & <figcaption>
+11.9 <time>, <address>
+11.10 Struktur layout semantic modern
+BAB 12: Multimedia (Audio & Video)
+12.1 Tag <audio> dan attributes
+12.2 Tag <video> dan attributes
+12.3 Attribute controls, autoplay, loop, muted
+12.4 Tag <source> untuk multiple format
+12.5 Tag <track> untuk subtitle/caption
+12.6 Embed YouTube/Vimeo dengan <iframe>
+12.7 Best practice multimedia
+BAB 13: Iframe & Embedded Content
+13.1 Tag <iframe> dan use case
+13.2 Attribute src, width, height, sandbox
+13.3 Embed Google Maps
+13.4 Embed social media content
+13.5 Keamanan iframe (sandbox, allow)
+13.6 Tag <embed> & <object>
+BAB 14: Meta Tags & SEO Dasar
+14.1 Apa itu meta tag
+14.2 <meta charset="UTF-8">
+14.3 <meta name="viewport"> untuk responsive
+14.4 <meta name="description"> untuk SEO
+14.5 <meta name="keywords"> (dan relevansinya hari ini)
+14.6 <meta name="author">, <meta name="robots">
+14.7 Open Graph tags (Facebook, WhatsApp preview)
+14.8 Twitter Card tags
+14.9 Favicon (<link rel="icon">)
+14.10 Canonical URL
+BAB 15: Path & File Management
+15.1 Absolute path vs Relative path
+15.2 Path ./, ../, /
+15.3 Struktur folder project yang baik
+15.4 Linking external CSS & JS
+15.5 Organizing assets (images, fonts, etc.)
+BAB 16: HTML + CSS + JavaScript (Integrasi Dasar)
+16.1 Inline, internal, external CSS
+16.2 Tag <style> dan <link rel="stylesheet">
+16.3 Tag <script> - inline vs external
+16.4 Attribute defer vs async
+16.5 Penempatan <script> (head vs body)
+16.6 Attribute id dan class untuk styling/scripting
+🔴 LEVEL 3: ADVANCED (Profesional)
+Tujuan: Menguasai HTML untuk aplikasi web modern, accessibility, performance, dan PWA.
+
+BAB 17: Web Accessibility (A11y)
+17.1 Apa itu accessibility & mengapa penting
+17.2 WCAG (Web Content Accessibility Guidelines)
+17.3 Semantic HTML untuk accessibility
+17.4 ARIA roles (role="button", role="navigation", dll.)
+17.5 ARIA attributes (aria-label, aria-hidden, aria-live)
+17.6 tabindex dan keyboard navigation
+17.7 Screen reader friendly content
+17.8 Alt text yang baik
+17.9 Color contrast & visual accessibility
+17.10 Testing dengan tools (Lighthouse, WAVE, axe)
+BAB 18: HTML5 APIs - Storage
+18.1 LocalStorage - menyimpan data permanen
+18.2 SessionStorage - data per sesi
+18.3 Cookies vs LocalStorage vs SessionStorage
+18.4 IndexedDB (pengenalan)
+18.5 Use case & limitasi
+BAB 19: HTML5 APIs - Geolocation & Device
+19.1 Geolocation API
+19.2 Meminta lokasi user
+19.3 Device Orientation API
+19.4 Battery Status API
+19.5 Network Information API
+BAB 20: HTML5 APIs - Drag & Drop
+20.1 Konsep Drag & Drop API
+20.2 Attribute draggable
+20.3 Event: dragstart, dragover, drop
+20.4 DataTransfer object
+20.5 Implementasi praktis (file upload, reorder list)
+BAB 21: HTML5 Canvas & SVG
+21.1 Tag <canvas> untuk grafis
+21.2 Dasar drawing Canvas
+21.3 Tag <svg> untuk vector graphics
+21.4 Perbedaan Canvas vs SVG
+21.5 Use case masing-masing
+21.6 Kapan pakai Canvas, kapan SVG
+BAB 22: Web Components (Pengenalan)
+22.1 Apa itu Web Components
+22.2 Custom Elements
+22.3 Shadow DOM
+22.4 HTML Templates (<template>, <slot>)
+22.5 Use case Web Components
+BAB 23: Performance Optimization
+23.1 Lazy loading (loading="lazy")
+23.2 <picture> & responsive images
+23.3 Attribute srcset & sizes
+23.4 <link rel="preload">, prefetch, preconnect
+23.5 Resource hints
+23.6 Critical rendering path
+23.7 Minify HTML
+23.8 Image optimization (WebP, AVIF)
+BAB 24: SEO Advanced & Structured Data
+24.1 Semantic HTML untuk SEO
+24.2 Heading hierarchy yang benar
+24.3 Microdata
+24.4 Schema.org markup
+24.5 JSON-LD untuk structured data
+24.6 Rich snippets (article, product, recipe, FAQ)
+24.7 Sitemap.xml & robots.txt (pengenalan)
+24.8 Breadcrumb markup
+BAB 25: Progressive Web App (PWA) - HTML Side
+25.1 Apa itu PWA
+25.2 manifest.json dan linking-nya
+25.3 Meta tags untuk PWA (theme-color, apple-touch-icon)
+25.4 Splash screen
+25.5 Service Worker (pengenalan dari sisi HTML)
+25.6 Install prompt
+25.7 Offline-first approach
+BAB 26: HTML Email (Khusus)
+26.1 Perbedaan HTML web vs HTML email
+26.2 Table-based layout (kenapa masih relevan)
+26.3 Inline CSS di email
+26.4 Client compatibility (Gmail, Outlook)
+26.5 Responsive email
+26.6 Testing tools untuk email
+BAB 27: Security in HTML
+27.1 XSS (Cross-Site Scripting) - basics
+27.2 Attribute rel="noopener noreferrer"
+27.3 Content Security Policy (CSP) meta tag
+27.4 Sandbox iframe
+27.5 Input validation & sanitization awareness
+27.6 HTTPS & mixed content
+BAB 28: Best Practices & Modern HTML
+28.1 Clean code HTML
+28.2 Naming convention
+28.3 HTML linting (HTMLHint, W3C Validator)
+28.4 Accessibility-first mindset
+28.5 Mobile-first approach
+28.6 Progressive enhancement vs graceful degradation
+28.7 Common mistakes & anti-patterns
+28.8 HTML di framework modern (React, Vue, Svelte)
+BAB 29: Project Capstone (Final Project)
+29.1 Project 1: Portfolio Website (Semantic + Responsive)
+29.2 Project 2: Landing Page Produk (SEO + Performance)
+29.3 Project 3: Blog Post Page (Accessibility + Schema)
+29.4 Project 4: Form Pendaftaran Lengkap (Validation)
+29.5 Project 5: Dashboard Layout (Semantic Advanced)
+29.6 Project Final: Multi-page Website Lengkap
+📊 RINGKASAN SILABUS
+Level	Bab	Estimasi Waktu Belajar
+🟢 Beginner	Bab 1 - 8	2-3 minggu
+🟡 Intermediate	Bab 9 - 16	3-4 minggu
+🔴 Advanced	Bab 17 - 29	4-6 minggu
+TOTAL	29 Bab	~3 bulan
