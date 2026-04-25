@@ -14,21 +14,32 @@ export default function ChaptersView() {
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    client.get<Course[]>('/admin/courses').then(r => {
-      setCourses(r.data);
-      if (r.data.length > 0) setSelectedCourse(r.data[0]._id);
-    });
+    setError(null);
+    client.get<Course[]>('/admin/courses')
+      .then(r => {
+        setCourses(r.data);
+        if (r.data[0] && !selectedCourse) setSelectedCourse(r.data[0]._id);
+      })
+      .catch(() => setError('Gagal memuat daftar kelas.'));
   }, []);
 
   useEffect(() => {
-    if (selectedCourse) {
-      client.get<Chapter[]>(`/admin/chapters?courseId=${selectedCourse}`).then(r => setChapters(r.data));
-    }
+    if (!selectedCourse) { setChapters([]); return; }
+    setError(null);
+    client.get<Chapter[]>(`/admin/chapters?courseId=${selectedCourse}`)
+      .then(r => setChapters(r.data))
+      .catch(() => setError('Gagal memuat daftar bab.'));
   }, [selectedCourse]);
 
   const loadChapters = () => {
-    if (selectedCourse) client.get<Chapter[]>(`/admin/chapters?courseId=${selectedCourse}`).then(r => setChapters(r.data));
+    if (selectedCourse) {
+      client.get<Chapter[]>(`/admin/chapters?courseId=${selectedCourse}`)
+        .then(r => setChapters(r.data))
+        .catch(() => toast.error('Gagal memuat ulang daftar bab.'));
+    }
   };
 
   const openAdd = () => {
@@ -69,6 +80,11 @@ export default function ChaptersView() {
 
   return (
     <div className="p-6 max-w-5xl">
+      {error && (
+        <div className="p-4 bg-red-900/30 border border-red-500/50 rounded-xl mb-4">
+          <p className="text-red-400 font-600 text-sm">{error}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display font-800 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>Bab & Level 📖</h1>

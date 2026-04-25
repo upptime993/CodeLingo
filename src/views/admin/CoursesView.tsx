@@ -16,8 +16,20 @@ export default function CoursesView() {
   const [form, setForm] = useState({ ...EMPTY });
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = () => client.get<Course[]>('/admin/courses').then(r => setCourses(r.data));
+  const load = () => {
+    setInitialLoading(true);
+    setError(null);
+    client.get<Course[]>('/admin/courses')
+      .then(r => setCourses(r.data))
+      .catch(err => {
+        console.error(err);
+        setError("Gagal memuat data kelas. Pastikan backend berjalan.");
+      })
+      .finally(() => setInitialLoading(false));
+  };
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm({ ...EMPTY }); setEditId(null); setModal('add'); };
@@ -54,6 +66,26 @@ export default function CoursesView() {
     toast.success(!c.isPublished ? 'Kelas dipublikasikan!' : 'Kelas disembunyikan.');
     load();
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <div className="w-10 h-10 border-4 rounded-full border-t-transparent animate-spin"
+          style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+        <p className="text-sm font-600" style={{ color: 'var(--color-text-muted)' }}>Memuat data kelas...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 bg-brand-surface rounded-2xl border border-brand-border">
+        <div className="text-4xl mb-2">⚠️</div>
+        <p className="font-600 text-brand-red">{error}</p>
+        <button className="btn-secondary" onClick={load}>Coba Lagi</button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl">

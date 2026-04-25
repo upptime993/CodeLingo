@@ -66,22 +66,44 @@ export default function MapView() {
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    coursesApi.list().then(list => {
-      setCourses(list);
-      if (list.length > 0) loadCourse(list[0]);
-    });
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const list = await coursesApi.list();
+        setCourses(list);
+        if (list && list.length > 0) {
+          await loadCourse(list[0]);
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to load courses:", err);
+        setError("Gagal memuat kelas. Pastikan server berjalan dan database terhubung.");
+        setLoading(false);
+      }
+    };
+    fetchCourses();
   }, []);
 
   const loadCourse = async (course: Course) => {
     setLoading(true);
+    setError(null);
     setSelectedCourse(course);
     try {
       const { chapters: chs } = await coursesApi.chapters(course.slug);
-      setChapters(chs);
-      const activeChapter = chs.find(ch => ch.levels?.some(l => l.status === 'unlocked'));
-      if (activeChapter) setExpandedChapters(new Set([activeChapter._id]));
-      else setExpandedChapters(new Set([chs[0]?._id]));
+      setChapters(chs || []);
+      if (chs && chs.length > 0) {
+        const activeChapter = chs.find(ch => ch.levels?.some(l => l.status === 'unlocked'));
+        if (activeChapter) setExpandedChapters(new Set([activeChapter._id]));
+        else setExpandedChapters(new Set([chs[0]?._id]));
+      }
+    } catch (err) {
+      console.error("Failed to load chapters:", err);
+      setError("Gagal memuat bab. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }

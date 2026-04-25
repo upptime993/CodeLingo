@@ -13,13 +13,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 // ── Connect DB on first request (Vercel serverless friendly) ──────────────────
-app.use(async (_req, _res, next) => {
+app.use(async (_req, res, next) => {
     try {
         await connectDB();
         next();
     }
-    catch {
-        next(new Error('DB connection failed'));
+    catch (err) {
+        console.error("Database connection failed during request:", err);
+        res.status(503).json({ message: 'Service Unavailable: Database connection failed' });
     }
 });
 // ── Routes ───────────────────────────────────────────────────────────────────

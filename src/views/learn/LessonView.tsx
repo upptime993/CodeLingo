@@ -426,6 +426,7 @@ export default function LessonView() {
 
   const [level, setLevel] = useState<Level | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
+  const [error, setError] = useState<string | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -437,24 +438,37 @@ export default function LessonView() {
   useEffect(() => {
     if (!levelId) return;
     setHearts(user?.hearts ?? 5);
-    coursesApi.level(levelId).then(l => {
-      setLevel(l);
+    setError(null);
+    coursesApi.level(levelId)
+      .then(l => {
+        setLevel(l);
 
-      if (l.type === 'theory') {
-        setPhase('theory');
-        return;
-      }
+        if (l.type === 'theory') {
+          setPhase('theory');
+          return;
+        }
 
-      // Check for saved progress
-      const saved = loadProgress(levelId);
-      if (saved && saved.questionIndex > 0 && l.questions && saved.questionIndex < l.questions.length) {
-        setQuestionIndex(saved.questionIndex);
-        setCorrectCount(saved.correctCount);
-        setHeartsUsed(saved.heartsUsed);
-        setResumedFrom(saved.questionIndex);
-      }
-      setPhase('question');
-    });
+        if (!l.questions || l.questions.length === 0) {
+          setError("Level ini belum memiliki soal. Silakan hubungi admin.");
+          setPhase('loading');
+          return;
+        }
+
+        // Check for saved progress
+        const saved = loadProgress(levelId);
+        if (saved && saved.questionIndex > 0 && l.questions && saved.questionIndex < l.questions.length) {
+          setQuestionIndex(saved.questionIndex);
+          setCorrectCount(saved.correctCount);
+          setHeartsUsed(saved.heartsUsed);
+          setResumedFrom(saved.questionIndex);
+        }
+        setPhase('question');
+      })
+      .catch(err => {
+        console.error("Gagal memuat level:", err);
+        setError("Gagal memuat level. Pastikan level ini ada atau coba lagi.");
+        setPhase('loading');
+      });
   }, [levelId]);
 
   const currentQuestion: Question | undefined = level?.questions?.[questionIndex];
@@ -554,11 +568,30 @@ export default function LessonView() {
   }, [selected, currentQuestion]);
 
   if (phase === 'loading') {
+    if (error) {
+      return (
+        <div className="min-h-dvh flex flex-col items-center justify-center gap-6 px-6 text-center" style={{ background: 'var(--color-bg)' }}>
+          <div className="w-20 h-20 rounded-full flex items-center justify-center text-4xl" style={{ background: 'var(--color-surface-2)' }}>
+            ⚠️
+          </div>
+          <div>
+            <h2 className="font-display font-800 text-2xl mb-2" style={{ color: 'var(--color-red)' }}>Oops!</h2>
+            <p className="text-lg" style={{ color: 'var(--color-text-muted)' }}>{error}</p>
+          </div>
+          <button className="btn-primary mt-4 px-8" onClick={() => navigate('/belajar')}>
+            Kembali ke Peta
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="min-h-dvh flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="text-5xl">
-          ⚙️
-        </motion.div>
+        <div className="flex flex-col items-center gap-4">
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="text-5xl">
+            ⚙️
+          </motion.div>
+          <p className="text-sm font-600" style={{ color: 'var(--color-text-muted)' }}>Menyiapkan pelajaran...</p>
+        </div>
       </div>
     );
   }
