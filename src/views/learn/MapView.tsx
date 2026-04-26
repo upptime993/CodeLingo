@@ -1,60 +1,281 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, Lock, BookOpen, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, Lock, BookOpen, Zap, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { coursesApi } from '../../api/courses';
 import { useAuthStore } from '../../store/authStore';
 import type { Course, Chapter, LevelSummary } from '../../types';
 
-// ─── Simple Flowing Connector ─────────────────────────────────────────────────
-// Menghubungkan 2 node dengan animasi "air mengalir": dash pendek bergerak
-function FlowConnector({ fromLeft, fromStatus }: {
-  fromLeft: boolean;    // posisi node saat ini (kiri / kanan)
-  fromStatus: string;   // status node saat ini → tentukan warna flow
-}) {
-  const active  = fromStatus === 'completed';
-  const partial = fromStatus === 'unlocked';
-  const show    = active || partial;
+// ─── Zigzag positions (% dari kiri) ──────────────────────────────────────────
+const ZIG = [22, 50, 78, 50, 22];
+function getZig(li: number) { return ZIG[li % ZIG.length]; }
 
-  // Node ada di kiri-tengah atau kanan-tengah layar
-  // Lebar info box ~50%, node ~w-14 (56px)
-  // Estimasi posisi node: kiri ≈ 25% lebar, kanan ≈ 75% lebar
-  const vW = 100; const vH = 44;
-  const x1 = fromLeft ? 25 : 75;
-  const x2 = fromLeft ? 75 : 25;
-  const path = `M ${x1} 0 Q 50 ${vH} ${x2} ${vH}`;
+// ─── SVG Connector ────────────────────────────────────────────────────────────
+function NodeConnector({ fromLi, toLi, fromStatus }: { fromLi: number; toLi: number; fromStatus: string }) {
+  const x1 = getZig(fromLi);
+  const x2 = getZig(toLi);
+  const active = fromStatus === 'completed';
+  const show   = active || fromStatus === 'unlocked';
+  const H = 72;
+  const path = `M ${x1} 0 Q ${(x1 + x2) / 2} ${H / 2} ${x2} ${H}`;
 
   return (
-    <div style={{ width: '100%', height: vH }}>
-      <svg width="100%" height={vH} viewBox={`0 0 ${vW} ${vH}`} preserveAspectRatio="none">
-        {/* Track abu-abu */}
-        <path d={path} stroke="var(--color-surface-3)" strokeWidth={4} fill="none" strokeLinecap="round" />
+    <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+      <path d={path} stroke="var(--color-surface-3)" strokeWidth={3} fill="none" strokeLinecap="round" />
+      {active && (
+        <motion.path
+          d={path} stroke="var(--color-primary)" strokeWidth={3} fill="none" strokeLinecap="round"
+          initial={{ strokeDasharray: 200, strokeDashoffset: 200 }}
+          animate={{ strokeDashoffset: 0 }}
+          transition={{ duration: 0.6 }}
+        />
+      )}
+      {show && (
+        <motion.path
+          d={path}
+          stroke={active ? 'var(--color-primary)' : 'rgba(195,243,119,0.5)'}
+          strokeWidth={5} fill="none" strokeLinecap="round" strokeDasharray="8 25"
+          animate={{ strokeDashoffset: [33, 0] }}
+          transition={{ duration: 0.75, repeat: Infinity, ease: 'linear' }}
+        />
+      )}
+    </svg>
+  );
+}
 
-        {/* Isi hijau saat completed */}
-        {active && (
-          <motion.path
-            d={path} stroke="var(--color-primary)" strokeWidth={4} fill="none" strokeLinecap="round"
-            initial={{ strokeDasharray: 350, strokeDashoffset: 350 }}
-            animate={{ strokeDashoffset: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-          />
-        )}
+// ─── Info Popup ───────────────────────────────────────────────────────────────
+function InfoPopup({ level, li, onClose, onStart }: {
+  level: LevelSummary; li: number; onClose: () => void; onStart: () => void;
+}) {
+  const left = getZig(li);
+  const isLocked = level.status === 'locked';
+  // posisi popup: kiri, tengah, atau kanan tergantung node
+  const popupStyle: React.CSSProperties =
+    left <= 30
+      ? { left: 0 }
+      : left >= 70
+      ? { right: 0 }
+      : { left: '50%', transform: 'translateX(-50%)' };
 
-        {/* Animasi "air mengalir": dashes bergerak sepanjang kurva */}
-        {show && (
-          <motion.path
-            d={path}
-            stroke={active ? 'var(--color-primary)' : 'rgba(195,243,119,0.45)'}
-            strokeWidth={6}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray="10 30"           /* dot kecil, jarak jauh */
-            animate={{ strokeDashoffset: [40, 0] }}
-            transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
-          />
+  // posisi arrow
+  const arrowLeft =
+    left <= 30 ? `${left}%` : left >= 70 ? `${100 - left}%` : '50%';
+
+  return (
+    <motion.div
+      data-popup="true"
+      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 6, scale: 0.96 }}
+      transition={{ duration: 0.14 }}
+      className="absolute z-30 rounded-2xl p-4 shadow-2xl"
+      style={{
+        ...popupStyle,
+        bottom: 72,
+        width: 210,
+        background: 'var(--color-surface-2)',
+        border: '1.5px solid var(--color-border)',
+      }}
+    >
+      {/* Arrow */}
+      <div className="absolute -bottom-[9px] w-4 h-4 rotate-45"
+        style={{
+          background: 'var(--color-surface-2)',
+          border: '1.5px solid var(--color-border)',
+          borderTop: 'none', borderLeft: 'none',
+          left: left <= 30 ? arrowLeft : left >= 70 ? 'auto' : '50%',
+          right: left >= 70 ? arrowLeft : 'auto',
+          transform: left >= 40 && left <= 60 ? 'translateX(-50%) rotate(45deg)' : 'rotate(45deg)',
+        }}
+      />
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div>
+          <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--color-text-muted)' }}>
+            {level.type === 'theory' ? '📖 Materi' : '⚡ Latihan'}
+          </p>
+          <p className="text-sm font-bold leading-snug" style={{ color: 'var(--color-text)' }}>
+            {level.title}
+          </p>
+        </div>
+        <button onClick={onClose} className="shrink-0 pt-0.5">
+          <X size={13} style={{ color: 'var(--color-text-dim)' }} />
+        </button>
+      </div>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+          style={{ background: 'rgba(251,191,36,0.15)', color: 'var(--color-gold)' }}>
+          +{level.xpReward} XP
+        </span>
+        {level.status === 'completed' && (
+          <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+            style={{ background: 'rgba(195,243,119,0.1)', color: 'var(--color-primary)' }}>
+            ✅ Selesai
+          </span>
         )}
-      </svg>
-    </div>
+      </div>
+      <button
+        onClick={onStart} disabled={isLocked}
+        className="w-full py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
+        style={{
+          background: isLocked ? 'var(--color-surface-3)' : 'var(--color-primary)',
+          color: isLocked ? 'var(--color-text-dim)' : 'var(--color-on-primary)',
+          cursor: isLocked ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {isLocked ? '🔒 Terkunci' : level.status === 'completed' ? 'Ulangi' : 'Mulai'}
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Chapter Map ──────────────────────────────────────────────────────────────
+function ChapterMap({ chapter, ci, isExpanded, onToggle, onNavigate }: {
+  chapter: Chapter; ci: number; isExpanded: boolean;
+  onToggle: () => void; onNavigate: (l: LevelSummary) => void;
+}) {
+  const [activePopup, setActivePopup] = useState<string | null>(null);
+  const allDone  = chapter.completedCount === chapter.totalCount && (chapter.totalCount ?? 0) > 0;
+  const progress = chapter.totalCount ? (chapter.completedCount ?? 0) / chapter.totalCount : 0;
+
+  const NODE_H = 64;
+  const CONN_H = 72;
+  const levels  = chapter.levels ?? [];
+  const mapH    = levels.length * NODE_H + Math.max(0, levels.length - 1) * CONN_H + 48;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ci * 0.05 }}>
+      {/* Header */}
+      <button onClick={onToggle}
+        className="w-full rounded-2xl p-4 flex items-center justify-between"
+        style={{
+          background: allDone ? 'rgba(195,243,119,0.08)' : 'var(--color-surface-2)',
+          border: `2px solid ${allDone ? 'var(--color-primary)' : 'var(--color-border)'}`,
+          borderBottom: `4px solid ${allDone ? '#4a6e00' : 'var(--color-border)'}`,
+        }}>
+        <div className="flex items-center gap-3 text-left">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0"
+            style={{ background: allDone ? 'var(--color-primary)' : 'var(--color-surface-3)' }}>
+            {allDone ? '✅' : <BookOpen size={20} style={{ color: 'var(--color-text-muted)' }} />}
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--color-text-dim)' }}>
+              Bab {ci + 1}
+            </p>
+            <p className="font-bold text-sm" style={{ fontFamily: 'var(--font-display)' }}>{chapter.title}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+              {chapter.completedCount}/{chapter.totalCount} level selesai
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: `conic-gradient(var(--color-primary) ${progress * 360}deg, var(--color-surface-3) 0deg)` }}>
+            <div className="w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ background: 'var(--color-bg, #0e1318)', fontSize: 9, color: 'var(--color-primary)', fontWeight: 700 }}>
+              {Math.round(progress * 100)}%
+            </div>
+          </div>
+          {isExpanded ? <ChevronUp size={14} style={{ color: 'var(--color-text-dim)' }} />
+                      : <ChevronDown size={14} style={{ color: 'var(--color-text-dim)' }} />}
+        </div>
+      </button>
+
+      {/* Levels */}
+      <AnimatePresence>
+        {isExpanded && levels.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ paddingTop: 40, paddingBottom: 24, position: 'relative' }}
+          >
+            {/* Connectors layer */}
+            <div style={{ position: 'absolute', top: 40, left: 0, right: 0, pointerEvents: 'none' }}>
+              {levels.slice(0, -1).map((level, li) => (
+                <div key={`conn-${li}`}
+                  style={{ position: 'absolute', top: li * (NODE_H + CONN_H) + NODE_H, left: 0, right: 0, height: CONN_H }}>
+                  <NodeConnector fromLi={li} toLi={li + 1} fromStatus={level.status || 'locked'} />
+                </div>
+              ))}
+            </div>
+
+            {/* Nodes layer */}
+            <div style={{ position: 'relative', height: mapH }}>
+              {levels.map((level, li) => {
+                const isCompleted   = level.status === 'completed';
+                const isActive      = level.status === 'unlocked';
+                const isLocked      = level.status === 'locked';
+                const isFirstActive = isActive && li === levels.findIndex(l => l.status === 'unlocked');
+                const topOffset     = li * (NODE_H + CONN_H);
+                const leftPct       = getZig(li);
+
+                return (
+                  <div key={level._id} style={{ position: 'absolute', top: topOffset, left: 0, right: 0, height: NODE_H }}>
+                    {/* Node wrapper */}
+                    <div style={{ position: 'absolute', left: `${leftPct}%`, transform: 'translateX(-50%)' }}>
+                      {/* MULAI badge */}
+                      {isFirstActive && (
+                        <motion.div
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.6 }}
+                          className="absolute px-3 py-1 rounded-lg font-bold whitespace-nowrap"
+                          style={{
+                            bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                            marginBottom: 6,
+                            background: 'var(--color-primary)', color: 'var(--color-on-primary)',
+                            fontFamily: 'var(--font-display)', fontSize: 11, zIndex: 10,
+                          }}>
+                          MULAI!
+                          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0"
+                            style={{ borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid var(--color-primary)' }} />
+                        </motion.div>
+                      )}
+
+                      {/* Pulse */}
+                      {isActive && (
+                        <motion.div className="absolute inset-0 rounded-full pointer-events-none"
+                          style={{ border: '3px solid rgba(195,243,119,0.4)' }}
+                          animate={{ scale: [1, 1.45, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ duration: 2, repeat: Infinity }} />
+                      )}
+
+                      {/* Button */}
+                      <button
+                        onClick={() => setActivePopup(activePopup === level._id ? null : level._id)}
+                        className={`w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+                          isCompleted ? 'node-completed' : isActive ? 'node-active' : 'node-locked'
+                        }`}
+                        style={{
+                          boxShadow: isCompleted ? '0 5px 0 #86ab4b' : isActive ? '0 5px 0 #3d5c00' : '0 4px 0 #1a2030',
+                        }}
+                      >
+                        {isCompleted && <Star size={24} fill="currentColor" style={{ color: 'var(--color-on-primary)' }} />}
+                        {isActive && (level.type === 'theory'
+                          ? <BookOpen size={24} style={{ color: 'var(--color-primary)' }} />
+                          : <Zap size={24} style={{ color: 'var(--color-primary)' }} />)}
+                        {isLocked && <Lock size={20} style={{ color: 'var(--color-text-dim)' }} />}
+                      </button>
+                    </div>
+
+                    {/* Popup */}
+                    <AnimatePresence>
+                      {activePopup === level._id && (
+                        <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
+                          <InfoPopup
+                            level={level} li={li}
+                            onClose={() => setActivePopup(null)}
+                            onStart={() => { setActivePopup(null); onNavigate(level); }}
+                          />
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -62,11 +283,11 @@ function FlowConnector({ fromLeft, fromStatus }: {
 export default function MapView() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses]       = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chapters, setChapters]     = useState<Chapter[]>([]);
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     coursesApi.list().then(list => {
@@ -81,24 +302,22 @@ export default function MapView() {
     try {
       const { chapters: chs } = await coursesApi.chapters(course.slug);
       setChapters(chs);
-      const activeChapter = chs.find(ch => ch.levels?.some(l => l.status === 'unlocked'));
-      if (activeChapter) setExpandedChapters(new Set([activeChapter._id]));
-      else setExpandedChapters(new Set([chs[0]?._id]));
+      const active = chs.find(ch => ch.levels?.some(l => l.status === 'unlocked'));
+      setExpandedChapters(new Set([active?._id ?? chs[0]?._id]));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLevelClick = (level: LevelSummary) => {
+  const handleNavigate = (level: LevelSummary) => {
     if (level.status === 'locked') return;
     navigate(`/belajar/${level._id}`);
   };
 
-  const toggleChapter = (chapterId: string) => {
+  const toggleChapter = (id: string) => {
     setExpandedChapters(prev => {
       const next = new Set(prev);
-      if (next.has(chapterId)) next.delete(chapterId);
-      else next.add(chapterId);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -110,38 +329,33 @@ export default function MapView() {
         style={{ background: 'rgba(14,19,24,0.92)', borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-2">
           <span className="text-xl">💻</span>
-          <span className="font-display font-800 text-lg" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-display)' }}>
+          <span className="font-bold text-lg" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-display)' }}>
             CodeLingo
           </span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <span className="text-lg">🔥</span>
-            <span className="font-display font-800 text-sm" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
-              {user?.streakDays ?? 0}
-            </span>
+            <span className="font-bold text-sm" style={{ color: 'var(--color-gold)' }}>{user?.streakDays ?? 0}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Zap size={16} fill="currentColor" style={{ color: 'var(--color-cyan)' }} />
-            <span className="font-display font-800 text-sm" style={{ color: 'var(--color-cyan)', fontFamily: 'var(--font-display)' }}>
-              {user?.totalXp ?? 0}
-            </span>
+            <span className="font-bold text-sm" style={{ color: 'var(--color-cyan)' }}>{user?.totalXp ?? 0}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {[...Array(5)].map((_, i) => (
-              <span key={i} className="text-sm" style={{ opacity: i < (user?.hearts ?? 5) ? 1 : 0.25 }}>❤️</span>
+              <span key={i} className="text-sm" style={{ opacity: i < (user?.hearts ?? 5) ? 1 : 0.2 }}>❤️</span>
             ))}
           </div>
         </div>
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-6">
-        {/* Course Selector */}
         {courses.length > 1 && (
           <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
             {courses.map(c => (
               <button key={c._id} onClick={() => loadCourse(c)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-600 whitespace-nowrap transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
                 style={{
                   background: selectedCourse?._id === c._id ? 'var(--color-primary)' : 'var(--color-surface-2)',
                   color: selectedCourse?._id === c._id ? 'var(--color-on-primary)' : 'var(--color-text-muted)',
@@ -153,9 +367,8 @@ export default function MapView() {
           </div>
         )}
 
-        {/* Greeting */}
         <div className="mb-6">
-          <h1 className="font-display font-800 text-2xl" style={{ fontFamily: 'var(--font-display)' }}>
+          <h1 className="font-bold text-2xl" style={{ fontFamily: 'var(--font-display)' }}>
             Halo, <span style={{ color: 'var(--color-primary)' }}>{user?.username}</span>! 👋
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
@@ -170,202 +383,15 @@ export default function MapView() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            {chapters.map((chapter, ci) => {
-              const isExpanded = expandedChapters.has(chapter._id);
-              const hasActive = chapter.levels?.some(l => l.status === 'unlocked');
-              const allDone = chapter.completedCount === chapter.totalCount && (chapter.totalCount ?? 0) > 0;
-              const progress = chapter.totalCount ? (chapter.completedCount ?? 0) / chapter.totalCount : 0;
-
-              return (
-                <motion.div key={chapter._id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: ci * 0.06 }}>
-
-                  {/* Chapter card */}
-                  <button onClick={() => toggleChapter(chapter._id)}
-                    className="w-full rounded-2xl p-4 flex items-center justify-between transition-all"
-                    style={{
-                      background: allDone ? 'rgba(195,243,119,0.08)' : hasActive ? 'var(--color-surface-2)' : 'var(--color-surface)',
-                      border: `2px solid ${allDone ? 'var(--color-primary)' : hasActive ? 'var(--color-border)' : 'var(--color-border)'}`,
-                      borderBottom: `4px solid ${allDone ? 'var(--color-primary-dim)' : 'var(--color-border)'}`,
-                    }}>
-                    <div className="flex items-center gap-3 text-left">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
-                        style={{ background: allDone ? 'var(--color-primary)' : 'var(--color-surface-3)' }}>
-                        {allDone ? '✅' : <BookOpen size={22} style={{ color: 'var(--color-text-muted)' }} />}
-                      </div>
-                      <div>
-                        <p className="text-xs font-600 uppercase tracking-wider mb-0.5" style={{ color: 'var(--color-text-dim)' }}>
-                          Bab {ci + 1}
-                        </p>
-                        <p className="font-display font-700 text-sm" style={{ fontFamily: 'var(--font-display)' }}>
-                          {chapter.title}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                          {chapter.completedCount}/{chapter.totalCount} level selesai
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-700"
-                        style={{
-                          background: `conic-gradient(var(--color-primary) ${progress * 360}deg, var(--color-surface-3) 0deg)`,
-                          color: 'var(--color-primary)',
-                        }}>
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center font-800"
-                          style={{ background: 'var(--color-bg)', fontSize: 11 }}>
-                          {Math.round(progress * 100)}%
-                        </div>
-                      </div>
-                      {isExpanded
-                        ? <ChevronUp size={16} style={{ color: 'var(--color-text-dim)' }} />
-                        : <ChevronDown size={16} style={{ color: 'var(--color-text-dim)' }} />}
-                    </div>
-                  </button>
-
-                  {/* Levels */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="overflow-x-hidden"
-                        style={{ overflowY: 'visible' }}>
-
-                        {/* ── Winding path: node + connector pairs ── */}
-                        <div className="flex flex-col pt-6 pb-4 px-2 w-full">
-                          {chapter.levels?.map((level, li) => {
-                            const levels = chapter.levels!;
-                            const isLeft      = li % 2 === 0;
-                            const isCompleted = level.status === 'completed';
-                            const isActive    = level.status === 'unlocked';
-                            const isLocked    = level.status === 'locked';
-                            const isFirstActive = isActive && li === levels.findIndex(l => l.status === 'unlocked');
-                            const nextLevel   = levels[li + 1];
-
-                            // Info box di kiri kalau node di kanan, sebaliknya
-                            const infoOnLeft = !isLeft;
-
-                            return (
-                              <div key={level._id} className="flex flex-col w-full">
-
-                                {/* ── Row: info + node ── */}
-                                <div className="flex items-center w-full px-1" style={{
-                                  justifyContent: isLeft ? 'flex-start' : 'flex-end',
-                                }}>
-
-                                  {/* Info box — tampil di kiri kalau node di kanan */}
-                                  {!isLeft && (
-                                    <div className="flex flex-col flex-1 pr-3 items-end">
-                                      <p className="text-xs font-600 text-right leading-tight"
-                                        style={{ color: isLocked ? 'var(--color-text-dim)' : 'var(--color-text)' }}>
-                                        {level.title}
-                                      </p>
-                                      <div className="flex items-center gap-1 mt-1 flex-wrap justify-end">
-                                        <span className="badge" style={{
-                                          background: level.type === 'theory' ? 'rgba(94,234,212,0.1)' : 'rgba(195,243,119,0.1)',
-                                          color: level.type === 'theory' ? 'var(--color-cyan)' : 'var(--color-primary)',
-                                        }}>
-                                          {level.type === 'theory' ? '📖 Materi' : '⚡ Latihan'}
-                                        </span>
-                                        <span className="badge" style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--color-gold)' }}>
-                                          +{level.xpReward} XP
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Node */}
-                                  <div className="flex flex-col items-center shrink-0" style={{ position: 'relative' }}>
-                                    {/* "MULAI!" badge */}
-                                    {isFirstActive && (
-                                      <motion.div
-                                        animate={{ y: [0, -5, 0] }}
-                                        transition={{ repeat: Infinity, duration: 1.8 }}
-                                        className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-lg text-xs font-800 whitespace-nowrap"
-                                        style={{
-                                          background: 'var(--color-primary)',
-                                          color: 'var(--color-on-primary)',
-                                          fontFamily: 'var(--font-display)',
-                                          zIndex: 10,
-                                        }}>
-                                        MULAI!
-                                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0"
-                                          style={{
-                                            borderLeft: '5px solid transparent',
-                                            borderRight: '5px solid transparent',
-                                            borderTop: '5px solid var(--color-primary)',
-                                          }} />
-                                      </motion.div>
-                                    )}
-
-                                    {/* Pulse ring */}
-                                    {isActive && (
-                                      <motion.div
-                                        className="absolute inset-0 rounded-full"
-                                        style={{ border: '3px solid rgba(195,243,119,0.4)' }}
-                                        animate={{ scale: [1, 1.35, 1], opacity: [0.7, 0, 0.7] }}
-                                        transition={{ duration: 2.2, repeat: Infinity }}
-                                      />
-                                    )}
-
-                                    <button
-                                      onClick={() => handleLevelClick(level)}
-                                      disabled={isLocked}
-                                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 ${isCompleted ? 'node-completed' : isActive ? 'node-active' : 'node-locked'}`}>
-                                      {isCompleted && <Star size={22} fill="currentColor" style={{ color: 'var(--color-on-primary)' }} />}
-                                      {isActive && (
-                                        level.type === 'theory'
-                                          ? <BookOpen size={22} style={{ color: 'var(--color-primary)' }} />
-                                          : <Zap size={22} style={{ color: 'var(--color-primary)' }} />
-                                      )}
-                                      {isLocked && <Lock size={18} style={{ color: 'var(--color-text-dim)' }} />}
-                                    </button>
-                                  </div>
-
-                                  {/* Info box — tampil di kanan kalau node di kiri */}
-                                  {isLeft && (
-                                    <div className="flex flex-col flex-1 pl-3 items-start">
-                                      <p className="text-xs font-600 leading-tight"
-                                        style={{ color: isLocked ? 'var(--color-text-dim)' : 'var(--color-text)' }}>
-                                        {level.title}
-                                      </p>
-                                      <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                        <span className="badge" style={{
-                                          background: level.type === 'theory' ? 'rgba(94,234,212,0.1)' : 'rgba(195,243,119,0.1)',
-                                          color: level.type === 'theory' ? 'var(--color-cyan)' : 'var(--color-primary)',
-                                        }}>
-                                          {level.type === 'theory' ? '📖 Materi' : '⚡ Latihan'}
-                                        </span>
-                                        <span className="badge" style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--color-gold)' }}>
-                                          +{level.xpReward} XP
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* ── Connector ── */}
-                                {nextLevel && (
-                                  <FlowConnector
-                                    fromLeft={isLeft}
-                                    fromStatus={level.status || 'locked'}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
+          <div className="flex flex-col gap-6">
+            {chapters.map((chapter, ci) => (
+              <ChapterMap
+                key={chapter._id} chapter={chapter} ci={ci}
+                isExpanded={expandedChapters.has(chapter._id)}
+                onToggle={() => toggleChapter(chapter._id)}
+                onNavigate={handleNavigate}
+              />
+            ))}
           </div>
         )}
       </div>
