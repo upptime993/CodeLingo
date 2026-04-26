@@ -16,15 +16,15 @@ function FlowConnector({ fromLeft, fromStatus }: {
   const partial = fromStatus === 'unlocked';
   const show    = active || partial;
 
-  // ViewBox 300×60  – node kiri ≈ x=60, node kanan ≈ x=240, ctrl point x=150
-  const vW = 300; const vH = 60;
-  const x1 = fromLeft ? 60  : 240;   // dari sisi kiri/kanan
-  const x2 = fromLeft ? 240 : 60;    // menuju sisi sebaliknya
-  const path = `M ${x1} 0 Q 150 ${vH} ${x2} ${vH}`;
+  // ViewBox 200×50 – node kiri ≈ x=40, node kanan ≈ x=160, ctrl point x=100
+  const vW = 200; const vH = 50;
+  const x1 = fromLeft ? 40  : 160;
+  const x2 = fromLeft ? 160 : 40;
+  const path = `M ${x1} 0 Q 100 ${vH} ${x2} ${vH}`;
 
   return (
     <div style={{ width: '100%', height: vH }}>
-      <svg width="100%" height={vH} viewBox={`0 0 ${vW} ${vH}`} preserveAspectRatio="none">
+      <svg width="100%" height={vH} viewBox={`0 0 ${vW} ${vH}`} preserveAspectRatio="xMidYMid meet">
         {/* Track abu-abu */}
         <path d={path} stroke="var(--color-surface-3)" strokeWidth={4} fill="none" strokeLinecap="round" />
 
@@ -234,7 +234,7 @@ export default function MapView() {
                         className="overflow-hidden">
 
                         {/* ── Winding path: node + connector pairs ── */}
-                        <div className="flex flex-col items-center py-6 px-2">
+                        <div className="flex flex-col items-center py-4 px-3">
                           {chapter.levels?.map((level, li) => {
                             const levels = chapter.levels!;
                             const isLeft     = li % 2 === 0;
@@ -251,8 +251,8 @@ export default function MapView() {
                                   className="flex flex-col items-center"
                                   style={{
                                     alignSelf: isLeft ? 'flex-start' : 'flex-end',
-                                    marginLeft:  isLeft ? '10%' : 0,
-                                    marginRight: isLeft ? 0 : '10%',
+                                    marginLeft:  isLeft ? '8%' : 0,
+                                    marginRight: isLeft ? 0 : '8%',
                                   }}>
 
                                   {/* Bounce "MULAI!" badge on first active node */}
