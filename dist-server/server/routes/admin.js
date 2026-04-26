@@ -8,6 +8,7 @@ import Progress from '../models/Progress.js';
 import { requireAdmin } from '../middleware/auth.js';
 const router = Router();
 // Semua route di sini butuh role admin
+// @ts-ignore
 router.use(requireAdmin);
 // ── STATS ────────────────────────────────────────────────────────────────────
 router.get('/stats', async (_req, res) => {

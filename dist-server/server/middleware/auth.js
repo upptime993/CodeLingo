@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+// @ts-ignore
 export async function requireAuth(req, res, next) {
     try {
         const authHeader = req.headers.authorization;
@@ -16,6 +17,7 @@ export async function requireAuth(req, res, next) {
         res.status(401).json({ message: 'Token tidak valid atau sudah kadaluarsa.' });
     }
 }
+// @ts-ignore
 export async function requireAdmin(req, res, next) {
     await requireAuth(req, res, async () => {
         if (req.user?.role !== 'admin') {

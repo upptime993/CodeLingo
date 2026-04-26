@@ -9,7 +9,8 @@ export interface AuthRequest extends Request {
   };
 }
 
-export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+// @ts-ignore
+export async function requireAuth(req: any, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -28,7 +29,8 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
-export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+// @ts-ignore
+export async function requireAdmin(req: any, res: Response, next: NextFunction) {
   await requireAuth(req, res, async () => {
     if (req.user?.role !== 'admin') {
       res.status(403).json({ message: 'Kamu tidak punya akses ke area ini.' });

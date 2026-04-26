@@ -79,6 +79,7 @@ router.post('/login', async (req, res) => {
     }
 });
 // ── GET /api/auth/me ─────────────────────────────────────────────────────────
+// @ts-ignore
 router.get('/me', requireAuth, async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select('-password');

@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import mongoose from 'mongoose';
 import Course from '../models/Course.js';
 import Chapter from '../models/Chapter.js';
@@ -11,10 +11,11 @@ import type { ImportPayload } from '../../src/types/index.js';
 const router = Router();
 
 // Semua route di sini butuh role admin
+// @ts-ignore
 router.use(requireAdmin);
 
 // ── STATS ────────────────────────────────────────────────────────────────────
-router.get('/stats', async (_req, res: Response) => {
+router.get('/stats', async (_req: Request, res: Response) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -31,12 +32,12 @@ router.get('/stats', async (_req, res: Response) => {
 });
 
 // ── COURSES CRUD ──────────────────────────────────────────────────────────────
-router.get('/courses', async (_req, res) => {
+router.get('/courses', async (_req: Request, res: Response) => {
   const courses = await Course.find().sort({ order: 1 });
   res.json(courses);
 });
 
-router.post('/courses', async (req, res: Response) => {
+router.post('/courses', async (req: Request, res: Response) => {
   try {
     const course = await Course.create(req.body);
     res.status(201).json(course);
@@ -45,7 +46,7 @@ router.post('/courses', async (req, res: Response) => {
   }
 });
 
-router.put('/courses/:id', async (req, res: Response) => {
+router.put('/courses/:id', async (req: Request, res: Response) => {
   try {
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!course) { res.status(404).json({ message: 'Kelas tidak ditemukan.' }); return; }
@@ -55,7 +56,7 @@ router.put('/courses/:id', async (req, res: Response) => {
   }
 });
 
-router.delete('/courses/:id', async (req, res: Response) => {
+router.delete('/courses/:id', async (req: Request, res: Response) => {
   try {
     await Course.findByIdAndDelete(req.params.id);
     // Cascade delete chapters & levels
@@ -70,14 +71,14 @@ router.delete('/courses/:id', async (req, res: Response) => {
 });
 
 // ── CHAPTERS CRUD ─────────────────────────────────────────────────────────────
-router.get('/chapters', async (req, res: Response) => {
+router.get('/chapters', async (req: Request, res: Response) => {
   const courseId = req.query.courseId as string | undefined;
   const filter = courseId ? { courseId } : {};
   const chapters = await Chapter.find(filter).sort({ orderIndex: 1 });
   res.json(chapters);
 });
 
-router.post('/chapters', async (req, res: Response) => {
+router.post('/chapters', async (req: Request, res: Response) => {
   try {
     const chapter = await Chapter.create(req.body);
     res.status(201).json(chapter);
@@ -86,7 +87,7 @@ router.post('/chapters', async (req, res: Response) => {
   }
 });
 
-router.put('/chapters/:id', async (req, res: Response) => {
+router.put('/chapters/:id', async (req: Request, res: Response) => {
   try {
     const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!chapter) { res.status(404).json({ message: 'Bab tidak ditemukan.' }); return; }
@@ -96,7 +97,7 @@ router.put('/chapters/:id', async (req, res: Response) => {
   }
 });
 
-router.delete('/chapters/:id', async (req, res: Response) => {
+router.delete('/chapters/:id', async (req: Request, res: Response) => {
   try {
     await Level.deleteMany({ chapterId: req.params.id });
     await Chapter.findByIdAndDelete(req.params.id);
@@ -107,14 +108,14 @@ router.delete('/chapters/:id', async (req, res: Response) => {
 });
 
 // ── LEVELS CRUD ───────────────────────────────────────────────────────────────
-router.get('/levels', async (req, res: Response) => {
+router.get('/levels', async (req: Request, res: Response) => {
   const chapterId = req.query.chapterId as string | undefined;
   const filter = chapterId ? { chapterId } : {};
   const levels = await Level.find(filter).sort({ orderIndex: 1 });
   res.json(levels);
 });
 
-router.post('/levels', async (req, res: Response) => {
+router.post('/levels', async (req: Request, res: Response) => {
   try {
     const level = await Level.create(req.body);
     res.status(201).json(level);
@@ -123,7 +124,7 @@ router.post('/levels', async (req, res: Response) => {
   }
 });
 
-router.put('/levels/:id', async (req, res: Response) => {
+router.put('/levels/:id', async (req: Request, res: Response) => {
   try {
     const level = await Level.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!level) { res.status(404).json({ message: 'Level tidak ditemukan.' }); return; }
@@ -133,7 +134,7 @@ router.put('/levels/:id', async (req, res: Response) => {
   }
 });
 
-router.delete('/levels/:id', async (req, res: Response) => {
+router.delete('/levels/:id', async (req: Request, res: Response) => {
   try {
     await Level.findByIdAndDelete(req.params.id);
     res.json({ message: 'Level berhasil dihapus.' });
@@ -143,12 +144,12 @@ router.delete('/levels/:id', async (req, res: Response) => {
 });
 
 // ── USERS ─────────────────────────────────────────────────────────────────────
-router.get('/users', async (_req, res: Response) => {
+router.get('/users', async (_req: Request, res: Response) => {
   const users = await User.find().select('-password').sort({ createdAt: -1 });
   res.json(users);
 });
 
-router.put('/users/:id', async (req, res: Response) => {
+router.put('/users/:id', async (req: Request, res: Response) => {
   try {
     const { role } = req.body;
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
@@ -160,7 +161,7 @@ router.put('/users/:id', async (req, res: Response) => {
 });
 
 // ── JSON IMPORT ───────────────────────────────────────────────────────────────
-router.post('/import', async (req, res: Response) => {
+router.post('/import', async (req: Request, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {

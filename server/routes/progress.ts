@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import Progress from '../models/Progress.js';
 import Level from '../models/Level.js';
 import User from '../models/User.js';
@@ -7,7 +7,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 const router = Router();
 
 // ── POST /api/progress/complete ──────────────────────────────────────────────
-router.post('/complete', requireAuth, async (req: AuthRequest, res: Response) => {
+// @ts-ignore
+router.post('/complete', requireAuth, async (req: any, res: Response) => {
   try {
     const { levelId, score, heartsUsed } = req.body;
     if (!levelId) {

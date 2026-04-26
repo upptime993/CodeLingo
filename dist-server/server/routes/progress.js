@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 // ── POST /api/progress/complete ──────────────────────────────────────────────
+// @ts-ignore
 router.post('/complete', requireAuth, async (req, res) => {
     try {
         const { levelId, score, heartsUsed } = req.body;

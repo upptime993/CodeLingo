@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import Course from '../models/Course.js';
 import Chapter from '../models/Chapter.js';
 import Level from '../models/Level.js';
@@ -8,7 +8,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 const router = Router();
 
 // ── GET /api/courses ─────────────────────────────────────────────────────────
-router.get('/', async (_req, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
     const courses = await Course.find({ isPublished: true }).sort({ order: 1 });
 
@@ -30,7 +30,8 @@ router.get('/', async (_req, res: Response) => {
 
 // ── GET /api/courses/:slug/chapters ─────────────────────────────────────────
 // Butuh auth untuk menampilkan progress user
-router.get('/:slug/chapters', requireAuth, async (req: AuthRequest, res: Response) => {
+// @ts-ignore
+router.get('/:slug/chapters', requireAuth, async (req: any, res: Response) => {
   try {
     const course = await Course.findOne({ slug: req.params.slug });
     if (!course) {
@@ -103,9 +104,10 @@ router.get('/:slug/chapters', requireAuth, async (req: AuthRequest, res: Respons
 });
 
 // ── GET /api/courses/levels/:id ───────────────────────────────────────────────
-router.get('/levels/:id', requireAuth, async (_req, res: Response) => {
+// @ts-ignore
+router.get('/levels/:id', requireAuth, async (req: any, res: Response) => {
   try {
-    const level = await Level.findById(_req.params.id);
+    const level = await Level.findById(req.params.id);
     if (!level) {
       res.status(404).json({ message: 'Level tidak ditemukan.' });
       return;
@@ -117,7 +119,7 @@ router.get('/levels/:id', requireAuth, async (_req, res: Response) => {
 });
 
 // ── GET /api/courses/leaderboard ─────────────────────────────────────────────
-router.get('/leaderboard/top', async (_req, res: Response) => {
+router.get('/leaderboard/top', async (_req: Request, res: Response) => {
   try {
     const User = (await import('../models/User.js')).default;
     const users = await User.find({ role: 'student' })

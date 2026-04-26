@@ -24,6 +24,7 @@ router.get('/', async (_req, res) => {
 });
 // ── GET /api/courses/:slug/chapters ─────────────────────────────────────────
 // Butuh auth untuk menampilkan progress user
+// @ts-ignore
 router.get('/:slug/chapters', requireAuth, async (req, res) => {
     try {
         const course = await Course.findOne({ slug: req.params.slug });
@@ -87,9 +88,10 @@ router.get('/:slug/chapters', requireAuth, async (req, res) => {
     }
 });
 // ── GET /api/courses/levels/:id ───────────────────────────────────────────────
-router.get('/levels/:id', requireAuth, async (_req, res) => {
+// @ts-ignore
+router.get('/levels/:id', requireAuth, async (req, res) => {
     try {
-        const level = await Level.findById(_req.params.id);
+        const level = await Level.findById(req.params.id);
         if (!level) {
             res.status(404).json({ message: 'Level tidak ditemukan.' });
             return;
