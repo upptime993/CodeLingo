@@ -16,15 +16,17 @@ function FlowConnector({ fromLeft, fromStatus }: {
   const partial = fromStatus === 'unlocked';
   const show    = active || partial;
 
-  // ViewBox 200×50 – node kiri ≈ x=40, node kanan ≈ x=160, ctrl point x=100
-  const vW = 200; const vH = 50;
-  const x1 = fromLeft ? 40  : 160;
-  const x2 = fromLeft ? 160 : 40;
-  const path = `M ${x1} 0 Q 100 ${vH} ${x2} ${vH}`;
+  // Node ada di kiri-tengah atau kanan-tengah layar
+  // Lebar info box ~50%, node ~w-14 (56px)
+  // Estimasi posisi node: kiri ≈ 25% lebar, kanan ≈ 75% lebar
+  const vW = 100; const vH = 44;
+  const x1 = fromLeft ? 25 : 75;
+  const x2 = fromLeft ? 75 : 25;
+  const path = `M ${x1} 0 Q 50 ${vH} ${x2} ${vH}`;
 
   return (
     <div style={{ width: '100%', height: vH }}>
-      <svg width="100%" height={vH} viewBox={`0 0 ${vW} ${vH}`} preserveAspectRatio="xMidYMid meet">
+      <svg width="100%" height={vH} viewBox={`0 0 ${vW} ${vH}`} preserveAspectRatio="none">
         {/* Track abu-abu */}
         <path d={path} stroke="var(--color-surface-3)" strokeWidth={4} fill="none" strokeLinecap="round" />
 
@@ -231,96 +233,123 @@ export default function MapView() {
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="overflow-hidden">
+                        className="overflow-x-hidden"
+                        style={{ overflowY: 'visible' }}>
 
                         {/* ── Winding path: node + connector pairs ── */}
-                        <div className="flex flex-col items-center py-4 px-3">
+                        <div className="flex flex-col pt-6 pb-4 px-2 w-full">
                           {chapter.levels?.map((level, li) => {
                             const levels = chapter.levels!;
-                            const isLeft     = li % 2 === 0;
+                            const isLeft      = li % 2 === 0;
                             const isCompleted = level.status === 'completed';
                             const isActive    = level.status === 'unlocked';
                             const isLocked    = level.status === 'locked';
                             const isFirstActive = isActive && li === levels.findIndex(l => l.status === 'unlocked');
                             const nextLevel   = levels[li + 1];
 
-                            return (
-                              <div key={level._id} className="flex flex-col items-stretch w-full">
-                                {/* ── Node ── */}
-                                <div
-                                  className="flex flex-col items-center"
-                                  style={{
-                                    alignSelf: isLeft ? 'flex-start' : 'flex-end',
-                                    marginLeft:  isLeft ? '8%' : 0,
-                                    marginRight: isLeft ? 0 : '8%',
-                                  }}>
+                            // Info box di kiri kalau node di kanan, sebaliknya
+                            const infoOnLeft = !isLeft;
 
-                                  {/* Bounce "MULAI!" badge on first active node */}
-                                  {isFirstActive && (
-                                    <motion.div
-                                      animate={{ y: [0, -6, 0] }}
-                                      transition={{ repeat: Infinity, duration: 1.8 }}
-                                      className="mb-2 px-3 py-1 rounded-xl text-xs font-800 relative"
-                                      style={{
-                                        background: 'var(--color-primary)',
-                                        color: 'var(--color-on-primary)',
-                                        fontFamily: 'var(--font-display)',
-                                      }}>
-                                      MULAI!
-                                      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0"
-                                        style={{
-                                          borderLeft: '6px solid transparent',
-                                          borderRight: '6px solid transparent',
-                                          borderTop: '6px solid var(--color-primary)',
-                                        }} />
-                                    </motion.div>
+                            return (
+                              <div key={level._id} className="flex flex-col w-full">
+
+                                {/* ── Row: info + node ── */}
+                                <div className="flex items-center w-full px-1" style={{
+                                  justifyContent: isLeft ? 'flex-start' : 'flex-end',
+                                }}>
+
+                                  {/* Info box — tampil di kiri kalau node di kanan */}
+                                  {!isLeft && (
+                                    <div className="flex flex-col flex-1 pr-3 items-end">
+                                      <p className="text-xs font-600 text-right leading-tight"
+                                        style={{ color: isLocked ? 'var(--color-text-dim)' : 'var(--color-text)' }}>
+                                        {level.title}
+                                      </p>
+                                      <div className="flex items-center gap-1 mt-1 flex-wrap justify-end">
+                                        <span className="badge" style={{
+                                          background: level.type === 'theory' ? 'rgba(94,234,212,0.1)' : 'rgba(195,243,119,0.1)',
+                                          color: level.type === 'theory' ? 'var(--color-cyan)' : 'var(--color-primary)',
+                                        }}>
+                                          {level.type === 'theory' ? '📖 Materi' : '⚡ Latihan'}
+                                        </span>
+                                        <span className="badge" style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--color-gold)' }}>
+                                          +{level.xpReward} XP
+                                        </span>
+                                      </div>
+                                    </div>
                                   )}
 
-                                  {/* Node button */}
-                                  <div className="relative">
-                                    {/* Pulse ring on active */}
+                                  {/* Node */}
+                                  <div className="flex flex-col items-center shrink-0" style={{ position: 'relative' }}>
+                                    {/* "MULAI!" badge */}
+                                    {isFirstActive && (
+                                      <motion.div
+                                        animate={{ y: [0, -5, 0] }}
+                                        transition={{ repeat: Infinity, duration: 1.8 }}
+                                        className="absolute -top-8 left-1/2 -translate-x-1/2 px-3 py-1 rounded-lg text-xs font-800 whitespace-nowrap"
+                                        style={{
+                                          background: 'var(--color-primary)',
+                                          color: 'var(--color-on-primary)',
+                                          fontFamily: 'var(--font-display)',
+                                          zIndex: 10,
+                                        }}>
+                                        MULAI!
+                                        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0"
+                                          style={{
+                                            borderLeft: '5px solid transparent',
+                                            borderRight: '5px solid transparent',
+                                            borderTop: '5px solid var(--color-primary)',
+                                          }} />
+                                      </motion.div>
+                                    )}
+
+                                    {/* Pulse ring */}
                                     {isActive && (
                                       <motion.div
                                         className="absolute inset-0 rounded-full"
-                                        style={{ border: '3px solid rgba(195,243,119,0.35)' }}
-                                        animate={{ scale: [1, 1.3, 1], opacity: [0.8, 0, 0.8] }}
+                                        style={{ border: '3px solid rgba(195,243,119,0.4)' }}
+                                        animate={{ scale: [1, 1.35, 1], opacity: [0.7, 0, 0.7] }}
                                         transition={{ duration: 2.2, repeat: Infinity }}
                                       />
                                     )}
+
                                     <button
-                                      id={`level-node-${level._id}`}
                                       onClick={() => handleLevelClick(level)}
                                       disabled={isLocked}
-                                      className={`w-20 h-20 rounded-full flex flex-col items-center justify-center gap-1 transition-all active:scale-95 ${isCompleted ? 'node-completed' : isActive ? 'node-active' : 'node-locked'}`}>
-                                      {isCompleted && <Star size={28} fill="currentColor" style={{ color: 'var(--color-on-primary)' }} />}
+                                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 ${isCompleted ? 'node-completed' : isActive ? 'node-active' : 'node-locked'}`}>
+                                      {isCompleted && <Star size={22} fill="currentColor" style={{ color: 'var(--color-on-primary)' }} />}
                                       {isActive && (
                                         level.type === 'theory'
-                                          ? <BookOpen size={28} style={{ color: 'var(--color-primary)' }} />
-                                          : <Zap size={28} style={{ color: 'var(--color-primary)' }} />
+                                          ? <BookOpen size={22} style={{ color: 'var(--color-primary)' }} />
+                                          : <Zap size={22} style={{ color: 'var(--color-primary)' }} />
                                       )}
-                                      {isLocked && <Lock size={24} style={{ color: 'var(--color-text-dim)' }} />}
+                                      {isLocked && <Lock size={18} style={{ color: 'var(--color-text-dim)' }} />}
                                     </button>
                                   </div>
 
-                                  {/* Label + badges */}
-                                  <p className="mt-2 text-xs font-600 text-center max-w-20"
-                                    style={{ color: isLocked ? 'var(--color-text-dim)' : 'var(--color-text-muted)' }}>
-                                    {level.title}
-                                  </p>
-                                  <div className="flex items-center gap-1 mt-0.5 flex-wrap justify-center">
-                                    <span className="badge" style={{
-                                      background: level.type === 'theory' ? 'rgba(94,234,212,0.1)' : 'rgba(195,243,119,0.1)',
-                                      color: level.type === 'theory' ? 'var(--color-cyan)' : 'var(--color-primary)',
-                                    }}>
-                                      {level.type === 'theory' ? '📖 Materi' : '⚡ Latihan'}
-                                    </span>
-                                    <span className="badge" style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--color-gold)' }}>
-                                      +{level.xpReward} XP
-                                    </span>
-                                  </div>
+                                  {/* Info box — tampil di kanan kalau node di kiri */}
+                                  {isLeft && (
+                                    <div className="flex flex-col flex-1 pl-3 items-start">
+                                      <p className="text-xs font-600 leading-tight"
+                                        style={{ color: isLocked ? 'var(--color-text-dim)' : 'var(--color-text)' }}>
+                                        {level.title}
+                                      </p>
+                                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                        <span className="badge" style={{
+                                          background: level.type === 'theory' ? 'rgba(94,234,212,0.1)' : 'rgba(195,243,119,0.1)',
+                                          color: level.type === 'theory' ? 'var(--color-cyan)' : 'var(--color-primary)',
+                                        }}>
+                                          {level.type === 'theory' ? '📖 Materi' : '⚡ Latihan'}
+                                        </span>
+                                        <span className="badge" style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--color-gold)' }}>
+                                          +{level.xpReward} XP
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
 
-                                {/* ── Flowing connector ke node berikutnya ── */}
+                                {/* ── Connector ── */}
                                 {nextLevel && (
                                   <FlowConnector
                                     fromLeft={isLeft}
