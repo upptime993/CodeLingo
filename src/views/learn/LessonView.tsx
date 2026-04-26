@@ -464,7 +464,7 @@ export default function LessonView() {
         }
         setPhase('question');
       })
-      .catch(err => {
+      .catch((err: unknown) => {
         console.error("Gagal memuat level:", err);
         setError("Gagal memuat level. Pastikan level ini ada atau coba lagi.");
         setPhase('loading');
@@ -602,8 +602,9 @@ export default function LessonView() {
       <header className="w-full sticky top-0 z-50 px-4 pt-5 pb-3 flex items-center gap-3"
         style={{ background: 'rgba(14,19,24,0.97)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--color-border)' }}>
         <button id="btn-exit" onClick={handleExit}
-          className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+          className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--color-surface-3)] focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
           title="Keluar (progress tersimpan)"
+          aria-label="Keluar dari pelajaran"
           style={{ color: 'var(--color-text-muted)', background: 'var(--color-surface-2)' }}>
           <X size={20} />
         </button>

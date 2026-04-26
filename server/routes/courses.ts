@@ -96,7 +96,7 @@ router.get('/:slug/chapters', requireAuth, async (req: AuthRequest, res: Respons
     });
 
     res.json({ course, chapters: chaptersWithProgress });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error(err);
     res.status(500).json({ message: 'Gagal ambil data bab.' });
   }

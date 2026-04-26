@@ -41,7 +41,7 @@ router.post('/complete', requireAuth, async (req: AuthRequest, res: Response) =>
     ).select('-password');
 
     res.json({ xpGained, user });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error(err);
     res.status(500).json({ message: 'Gagal simpan progress.' });
   }

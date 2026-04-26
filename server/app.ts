@@ -20,7 +20,7 @@ app.use(async (_req, res, next) => {
   try {
     await connectDB();
     next();
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Database connection failed during request:", err);
     res.status(503).json({ message: 'Service Unavailable: Database connection failed' });
   }

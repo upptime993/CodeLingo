@@ -42,8 +42,10 @@ export default function HomeView() {
               </motion.div>
             )}
             
-            <button className={`
-              w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95
+            <button
+              aria-label={`Node tipe ${node.type} (${node.completed ? 'Selesai' : node.active ? 'Aktif' : 'Terkunci'})`}
+              className={`
+              w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 focus:ring-4 focus:ring-[var(--color-primary)] outline-none
               ${node.completed ? 'bg-brand-primary shadow-[0_6px_0_0_#86ab4b] active:translate-y-[6px] active:shadow-none' : 
                 node.active ? 'bg-brand-surface-highest ring-4 ring-brand-primary ring-offset-4 ring-offset-brand-background shadow-[0_6px_0_0_#22283A] active:translate-y-[6px] active:shadow-none' : 
                 'bg-brand-surface-highest opacity-70 cursor-not-allowed shadow-[0_6px_0_0_#22283A]'}

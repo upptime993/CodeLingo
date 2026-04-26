@@ -80,7 +80,7 @@ export default function MapView() {
         } else {
           setLoading(false);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Failed to load courses:", err);
         setError("Gagal memuat kelas. Pastikan server berjalan dan database terhubung.");
         setLoading(false);
@@ -101,7 +101,7 @@ export default function MapView() {
         if (activeChapter) setExpandedChapters(new Set([activeChapter._id]));
         else setExpandedChapters(new Set([chs[0]?._id]));
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to load chapters:", err);
       setError("Gagal memuat bab. Silakan coba lagi.");
     } finally {
@@ -183,11 +183,27 @@ export default function MapView() {
           </p>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div className="bg-[var(--color-surface-2)] border-2 border-[var(--color-coral)] rounded-2xl p-6 text-center">
+            <p className="text-[var(--color-coral)] font-600 mb-2">Oops!</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{error}</p>
+            <button
+              className="mt-4 px-4 py-2 bg-[var(--color-surface-3)] rounded-xl text-sm font-600"
+              onClick={() => window.location.reload()}
+            >
+              Coba Lagi
+            </button>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col gap-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--color-surface-2)' }} />
             ))}
+          </div>
+        ) : chapters.length === 0 ? (
+          <div className="bg-[var(--color-surface-2)] border-2 border-[var(--color-border)] rounded-2xl p-6 text-center">
+            <p className="text-[var(--color-text-dim)] font-600 mb-2">Belum ada materi</p>
+            <p className="text-sm text-[var(--color-text-muted)]">Kelas ini belum memiliki bab atau level untuk dipelajari.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -205,7 +221,9 @@ export default function MapView() {
 
                   {/* Chapter card */}
                   <button onClick={() => toggleChapter(chapter._id)}
-                    className="w-full rounded-2xl p-4 flex items-center justify-between transition-all"
+                    className="w-full rounded-2xl p-4 flex items-center justify-between transition-all hover:bg-[var(--color-surface-3)] focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+                    aria-expanded={isExpanded}
+                    aria-label={`Toggle bab ${ci + 1}: ${chapter.title}`}
                     style={{
                       background: allDone ? 'rgba(195,243,119,0.08)' : hasActive ? 'var(--color-surface-2)' : 'var(--color-surface)',
                       border: `2px solid ${allDone ? 'var(--color-primary)' : hasActive ? 'var(--color-border)' : 'var(--color-border)'}`,
@@ -313,7 +331,8 @@ export default function MapView() {
                                       id={`level-node-${level._id}`}
                                       onClick={() => handleLevelClick(level)}
                                       disabled={isLocked}
-                                      className={`w-20 h-20 rounded-full flex flex-col items-center justify-center gap-1 transition-all active:scale-95 ${isCompleted ? 'node-completed' : isActive ? 'node-active' : 'node-locked'}`}>
+                                      aria-label={`Level: ${level.title} (${isCompleted ? 'Selesai' : isActive ? 'Terbuka' : 'Terkunci'})`}
+                                      className={`w-20 h-20 rounded-full flex flex-col items-center justify-center gap-1 transition-all active:scale-95 focus:ring-4 focus:ring-[var(--color-primary)] outline-none ${isCompleted ? 'node-completed' : isActive ? 'node-active' : 'node-locked'}`}>
                                       {isCompleted && <Star size={28} fill="currentColor" style={{ color: 'var(--color-on-primary)' }} />}
                                       {isActive && (
                                         level.type === 'theory'
