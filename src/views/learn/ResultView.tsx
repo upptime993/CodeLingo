@@ -1,5 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
 
 interface ResultState {
@@ -8,13 +10,39 @@ interface ResultState {
   correctCount: number;
   totalQuestions: number;
   isTheory?: boolean;
+  prevStreakDays?: number;
 }
 
 export default function ResultView() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { user } = useAuthStore();
-  const { xpGained, score, correctCount, totalQuestions, isTheory } = (state as ResultState) ?? {};
+
+  // UX-01: Guard jika halaman diakses langsung tanpa state dari kuis
+  if (!state) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4"
+        style={{ background: 'linear-gradient(160deg, #0E1318 0%, #161D28 100%)' }}>
+        <p className="text-6xl">😕</p>
+        <p className="text-xl font-600">Tidak ada hasil untuk ditampilkan.</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          Selesaikan sebuah level dulu untuk melihat hasilnya!
+        </p>
+        <button className="btn-primary" onClick={() => navigate('/belajar')}>
+          Kembali ke Belajar 🚀
+        </button>
+      </div>
+    );
+  }
+
+  const { xpGained, score, correctCount, totalQuestions, isTheory, prevStreakDays } = state as ResultState;
+
+  // U-07: Tampilkan toast jika streak naik setelah menyelesaikan level
+  useEffect(() => {
+    if (prevStreakDays !== undefined && user && user.streakDays > prevStreakDays) {
+      toast.success(`🔥 Streak ${user.streakDays} hari! Keren banget!`, { duration: 3000 });
+    }
+  }, []);
 
   const isGood = !isTheory && score >= 66;
   const isPerfect = !isTheory && score === 100;

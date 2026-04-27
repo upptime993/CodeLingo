@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { coursesApi } from '../api/courses';
 import type { LeaderboardEntry } from '../types';
+import HeartsTimer from '../components/HeartsTimer';
 
 export default function ProfileView() {
   const navigate = useNavigate();
@@ -86,6 +87,9 @@ export default function ProfileView() {
               <span style={{ color: stat.color }}>{stat.icon}</span>
               <span className="font-display font-900 text-2xl" style={{ color: stat.color, fontFamily: 'var(--font-display)' }}>{stat.value}</span>
               <span className="text-xs font-600" style={{ color: 'var(--color-text-muted)' }}>{stat.label}</span>
+              {stat.label === 'Nyawa' && (
+                <div className="mt-1"><HeartsTimer /></div>
+              )}
             </motion.div>
           ))}
         </div>

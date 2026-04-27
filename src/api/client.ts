@@ -5,19 +5,24 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT token to every request
+// KR-04: Baca token dari Zustand store (single source of truth)
+// Menggunakan lazy import untuk menghindari circular dependency
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('cl_token');
+  // Import secara lazy untuk hindari circular dep
+  const { useAuthStore } = require('../store/authStore');
+  const token = useAuthStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Auto-logout on 401
+// BUG-04: Auto-logout 401 sekarang clear Zustand store, bukan hanya localStorage
 client.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('cl_token');
+      // Gunakan Zustand logout() agar seluruh persist store juga ikut di-clear
+      const { useAuthStore } = require('../store/authStore');
+      useAuthStore.getState().logout();
       window.location.href = '/masuk';
     }
     return Promise.reject(err);

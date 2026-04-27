@@ -28,19 +28,45 @@ router.post('/complete', requireAuth, async (req: AuthRequest, res: Response) =>
       { upsert: true, new: true }
     );
 
-    // Update XP dan hati user
+    // Update XP dan hati user — BUG-01: gabungkan $inc agar tidak saling menimpa
     const xpGained = level.xpReward;
-    const user = await User.findByIdAndUpdate(
+    const userBefore = await User.findById(req.user!._id);
+    const updatedUser = await User.findByIdAndUpdate(
       req.user!._id,
       {
-        $inc: { totalXp: xpGained },
+        $inc: {
+          totalXp: xpGained,
+          ...(heartsUsed > 0 ? { hearts: -heartsUsed } : {}),
+        },
         $set: { lastActiveDate: new Date() },
-        ...(heartsUsed > 0 ? { $inc: { hearts: -heartsUsed } } : {}),
       },
       { new: true }
     ).select('-password');
 
-    res.json({ xpGained, user });
+    // GAP-02: Update streak saat selesai level (bukan hanya saat login)
+    if (updatedUser && userBefore) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const last = userBefore.lastActiveDate
+        ? new Date(userBefore.lastActiveDate)
+        : null;
+      if (last) {
+        last.setHours(0, 0, 0, 0);
+        const diff = Math.floor((today.getTime() - last.getTime()) / 86400000);
+        if (diff === 1) {
+          await User.findByIdAndUpdate(req.user!._id, { $inc: { streakDays: 1 } });
+          updatedUser.streakDays = (updatedUser.streakDays ?? 0) + 1;
+        } else if (diff > 1) {
+          await User.findByIdAndUpdate(req.user!._id, { $set: { streakDays: 1 } });
+          updatedUser.streakDays = 1;
+        }
+      } else {
+        await User.findByIdAndUpdate(req.user!._id, { $set: { streakDays: 1 } });
+        updatedUser.streakDays = 1;
+      }
+    }
+
+    res.json({ xpGained, user: updatedUser });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Gagal simpan progress.' });

@@ -21,12 +21,12 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
 
       login: ({ token, user }) => {
-        localStorage.setItem('cl_token', token);
+        // KR-04: Hanya simpan ke Zustand — persist middleware handles localStorage
         set({ token, user });
       },
 
       logout: () => {
-        localStorage.removeItem('cl_token');
+        // KR-04: Zustand persist akan otomatis clear 'cl-auth' key
         set({ token: null, user: null });
       },
 

@@ -18,7 +18,9 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
     }
 
     const token = authHeader.split(' ')[1];
-    const secret = process.env.JWT_SECRET || 'dev-secret';
+    // SEC-01: Jangan gunakan fallback — jika JWT_SECRET tidak diset, server harus gagal dengan jelas
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET tidak diset di environment variables!');
     const payload = jwt.verify(token, secret) as { id: string; role: string };
 
     req.user = { _id: payload.id, role: payload.role };

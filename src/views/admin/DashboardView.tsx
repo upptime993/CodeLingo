@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom'; // UX-04: import Link untuk SPA navigation
 import { motion } from 'motion/react';
 import { Users, BookOpen, Layers, Zap } from 'lucide-react';
 import client from '../../api/client';
@@ -56,14 +57,15 @@ export default function DashboardView() {
             { label: '❓ Tambah Soal', to: '/admin/soal' },
             { label: '📥 Impor JSON', to: '/admin/impor' },
           ].map(a => (
-            <a key={a.to} href={a.to}
+            // UX-04: Ganti <a href> dengan <Link> agar tidak full page reload
+            <Link key={a.to} to={a.to}
               className="px-4 py-3 rounded-xl font-600 text-sm transition-all"
-              style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: '1.5px solid var(--color-border)' }}
+              style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: '1.5px solid var(--color-border)', display: 'block' }}
               onMouseOver={e => { (e.currentTarget as any).style.borderColor = 'var(--color-purple)'; (e.currentTarget as any).style.color = 'var(--color-purple)'; }}
               onMouseOut={e => { (e.currentTarget as any).style.borderColor = 'var(--color-border)'; (e.currentTarget as any).style.color = 'var(--color-text)'; }}
             >
               {a.label}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

@@ -29,7 +29,9 @@ router.post('/register', async (req, res: Response) => {
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({ username, email, password: hashed });
 
-    const secret = process.env.JWT_SECRET || 'dev-secret';
+    // SEC-01: Tidak ada fallback — jika JWT_SECRET tidak diset, lempar error
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET tidak diset di environment variables!');
     const token = jwt.sign({ id: user._id, role: user.role }, secret, { expiresIn: '30d' });
 
     const { password: _, ...userWithoutPassword } = user.toObject();
@@ -77,7 +79,9 @@ router.post('/login', async (req, res: Response) => {
     user.hearts = Math.min(5, user.hearts + 1);
     await user.save();
 
-    const secret = process.env.JWT_SECRET || 'dev-secret';
+    // SEC-01: Tidak ada fallback — jika JWT_SECRET tidak diset, lempar error
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET tidak diset di environment variables!');
     const token = jwt.sign({ id: user._id, role: user.role }, secret, { expiresIn: '30d' });
 
     const { password: _, ...userWithoutPassword } = user.toObject();
@@ -95,6 +99,17 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       res.status(404).json({ message: 'User tidak ditemukan.' });
       return;
     }
+
+    // F-01: Hearts recovery otomatis — pulih 1 setiap 8 jam jika belum penuh
+    if (user.hearts < 5 && user.lastActiveDate) {
+      const hoursSince = (Date.now() - new Date(user.lastActiveDate).getTime()) / 3_600_000;
+      if (hoursSince >= 8) {
+        const recovered = Math.min(5, user.hearts + Math.floor(hoursSince / 8));
+        await User.findByIdAndUpdate(user._id, { hearts: recovered });
+        user.hearts = recovered;
+      }
+    }
+
     res.json(user);
   } catch {
     res.status(500).json({ message: 'Ada error server.' });

@@ -279,11 +279,21 @@ function QuestionEditor({ q, onChange, onDelete, index }: {
   );
 }
 
+// KR-03: Definisikan tipe eksplisit agar tidak perlu useState<any>
+type LevelFormState = {
+  title: string;
+  type: 'theory' | 'exercise';
+  orderIndex: number;
+  xpReward: number;
+  theory: { contentMarkdown: string; codeExample: string };
+  questions: Question[];
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
-const EMPTY_LEVEL = {
-  title: '', type: 'theory' as const, orderIndex: 0, xpReward: 10,
+const EMPTY_LEVEL: LevelFormState = {
+  title: '', type: 'theory', orderIndex: 0, xpReward: 10,
   theory: { contentMarkdown: '', codeExample: '' },
-  questions: [] as Question[],
+  questions: [],
 };
 
 export default function LevelsView() {
@@ -293,7 +303,7 @@ export default function LevelsView() {
   const [selCourse, setSelCourse] = useState('');
   const [selChapter, setSelChapter] = useState('');
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
-  const [form, setForm] = useState<any>({ ...EMPTY_LEVEL });
+  const [form, setForm] = useState<LevelFormState>({ ...EMPTY_LEVEL });
   const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedLevel, setExpandedLevel] = useState<string | null>(null);

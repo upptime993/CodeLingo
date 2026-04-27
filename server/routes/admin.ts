@@ -31,9 +31,14 @@ router.get('/stats', async (_req, res: Response) => {
 });
 
 // ── COURSES CRUD ──────────────────────────────────────────────────────────────
-router.get('/courses', async (_req, res) => {
-  const courses = await Course.find().sort({ order: 1 });
-  res.json(courses);
+// KR-01: Tambah try-catch agar unhandled rejection tidak crash server
+router.get('/courses', async (_req, res: Response) => {
+  try {
+    const courses = await Course.find().sort({ order: 1 });
+    res.json(courses);
+  } catch {
+    res.status(500).json({ message: 'Gagal mengambil data kelas.' });
+  }
 });
 
 router.post('/courses', async (req, res: Response) => {
@@ -70,11 +75,16 @@ router.delete('/courses/:id', async (req, res: Response) => {
 });
 
 // ── CHAPTERS CRUD ─────────────────────────────────────────────────────────────
+// KR-01: Tambah try-catch
 router.get('/chapters', async (req, res: Response) => {
-  const courseId = req.query.courseId as string | undefined;
-  const filter = courseId ? { courseId } : {};
-  const chapters = await Chapter.find(filter).sort({ orderIndex: 1 });
-  res.json(chapters);
+  try {
+    const courseId = req.query.courseId as string | undefined;
+    const filter = courseId ? { courseId } : {};
+    const chapters = await Chapter.find(filter).sort({ orderIndex: 1 });
+    res.json(chapters);
+  } catch {
+    res.status(500).json({ message: 'Gagal mengambil data bab.' });
+  }
 });
 
 router.post('/chapters', async (req, res: Response) => {
@@ -107,11 +117,22 @@ router.delete('/chapters/:id', async (req, res: Response) => {
 });
 
 // ── LEVELS CRUD ───────────────────────────────────────────────────────────────
+// KR-01: Tambah try-catch + PERF-03: Tambah pagination
 router.get('/levels', async (req, res: Response) => {
-  const chapterId = req.query.chapterId as string | undefined;
-  const filter = chapterId ? { chapterId } : {};
-  const levels = await Level.find(filter).sort({ orderIndex: 1 });
-  res.json(levels);
+  try {
+    const chapterId = req.query.chapterId as string | undefined;
+    const filter = chapterId ? { chapterId } : {};
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const levels = await Level.find(filter)
+      .sort({ orderIndex: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    const total = await Level.countDocuments(filter);
+    res.json({ levels, total, page, totalPages: Math.ceil(total / limit) });
+  } catch {
+    res.status(500).json({ message: 'Gagal mengambil data level.' });
+  }
 });
 
 router.post('/levels', async (req, res: Response) => {
@@ -143,14 +164,31 @@ router.delete('/levels/:id', async (req, res: Response) => {
 });
 
 // ── USERS ─────────────────────────────────────────────────────────────────────
-router.get('/users', async (_req, res: Response) => {
-  const users = await User.find().select('-password').sort({ createdAt: -1 });
-  res.json(users);
+// KR-01: Tambah try-catch + PERF-03: Tambah pagination
+router.get('/users', async (req, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const users = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    const total = await User.countDocuments();
+    res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
+  } catch {
+    res.status(500).json({ message: 'Gagal mengambil data user.' });
+  }
 });
 
 router.put('/users/:id', async (req, res: Response) => {
   try {
     const { role } = req.body;
+    // SEC-05: Validasi enum role sebelum update
+    if (!['student', 'admin'].includes(role)) {
+      res.status(400).json({ message: 'Role tidak valid. Harus "student" atau "admin".' });
+      return;
+    }
     const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
     if (!user) { res.status(404).json({ message: 'User tidak ditemukan.' }); return; }
     res.json(user);
@@ -171,6 +209,33 @@ router.post('/import', async (req, res: Response) => {
       return;
     }
 
+    // SEC-02: Validasi field kritis sebelum upsert
+    if (!payload.course.title || typeof payload.course.title !== 'string') {
+      res.status(400).json({ message: 'Field course.title wajib berupa string.' });
+      return;
+    }
+    if (!payload.course.slug || typeof payload.course.slug !== 'string') {
+      res.status(400).json({ message: 'Field course.slug wajib berupa string.' });
+      return;
+    }
+    if (!Array.isArray(payload.chapters) || payload.chapters.length === 0) {
+      res.status(400).json({ message: 'chapters harus berupa array tidak kosong.' });
+      return;
+    }
+    // Cek konten markdown tidak mengandung tag script berbahaya
+    for (const ch of payload.chapters) {
+      for (const lv of ch.levels || []) {
+        if (lv.theory?.contentMarkdown && /<script/i.test(lv.theory.contentMarkdown)) {
+          res.status(400).json({ message: `Level "${lv.title}" mengandung konten script berbahaya di contentMarkdown.` });
+          return;
+        }
+        if (!['theory', 'exercise'].includes(lv.type)) {
+          res.status(400).json({ message: `Level "${lv.title}" memiliki type tidak valid: ${lv.type}` });
+          return;
+        }
+      }
+    }
+
     // Upsert course berdasarkan slug
     const course = await Course.findOneAndUpdate(
       { slug: payload.course.slug },
@@ -184,8 +249,7 @@ router.post('/import', async (req, res: Response) => {
     for (let ci = 0; ci < payload.chapters.length; ci++) {
       const chData = payload.chapters[ci];
 
-      // Hitung orderIndex bab
-      const existingCount = await Chapter.countDocuments({ courseId: course._id });
+      // KR-02: existingCount dihapus — tidak pernah dipakai
       const chapter = await Chapter.findOneAndUpdate(
         { courseId: course._id, title: chData.title },
         { courseId: course._id, title: chData.title, description: chData.description || '', orderIndex: ci },

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star, Lock, BookOpen, Zap, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock, CheckCircle2, Circle, BookOpen, Zap, X, Star } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { coursesApi } from '../../api/courses';
 import { useAuthStore } from '../../store/authStore';
 import type { Course, Chapter, LevelSummary } from '../../types';
@@ -130,6 +131,7 @@ function InfoPopup({ level, li, onClose, onStart }: {
 
 // ─── Chapter Map ──────────────────────────────────────────────────────────────
 function ChapterMap({ chapter, ci, isExpanded, onToggle, onNavigate }: {
+  key?: React.Key;
   chapter: Chapter; ci: number; isExpanded: boolean;
   onToggle: () => void; onNavigate: (l: LevelSummary) => void;
 }) {
@@ -304,6 +306,9 @@ export default function MapView() {
       setChapters(chs);
       const active = chs.find(ch => ch.levels?.some(l => l.status === 'unlocked'));
       setExpandedChapters(new Set([active?._id ?? chs[0]?._id]));
+    } catch {
+      // BUG-05: Tangani error agar tidak silent fail
+      toast.error('Gagal memuat data kelas. Coba refresh halaman.');
     } finally {
       setLoading(false);
     }
@@ -350,7 +355,8 @@ export default function MapView() {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 pt-6">
+      {/* ITEM 2: max-w-md menjaga agar zigzag map tetap proporsional di Desktop seperti Grasshopper */}
+      <div className="max-w-md mx-auto px-4 pt-6">
         {courses.length > 1 && (
           <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
             {courses.map(c => (
@@ -377,10 +383,26 @@ export default function MapView() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--color-surface-2)' }} />
+              <div key={i} className="animate-pulse rounded-2xl border p-4 space-y-4" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full" style={{ background: 'var(--color-surface-3)' }} />
+                  <div className="h-4 rounded w-1/2" style={{ background: 'var(--color-surface-3)' }} />
+                </div>
+                <div className="h-3 rounded w-3/4" style={{ background: 'var(--color-surface-3)' }} />
+                <div className="h-3 rounded w-1/3" style={{ background: 'var(--color-surface-3)' }} />
+              </div>
             ))}
+          </div>
+        ) : chapters.length === 0 ? (
+          // UX-03: Empty state jika tidak ada kursus/chapter yang tersedia
+          <div className="text-center py-16">
+            <p className="text-5xl mb-3">🚧</p>
+            <p className="font-600 text-lg">Konten sedang disiapkan.</p>
+            <p className="text-sm mt-2" style={{ color: 'var(--color-text-muted)' }}>
+              Pantau terus ya! Materi baru segera hadir.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-6">

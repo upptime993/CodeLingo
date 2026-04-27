@@ -12,6 +12,7 @@ import RegisterView from './views/auth/RegisterView';
 import MapView from './views/learn/MapView';
 import LessonView from './views/learn/LessonView';
 import ResultView from './views/learn/ResultView';
+import LeaderboardView from './views/learn/LeaderboardView';
 import ProfileView from './views/ProfileView';
 import BottomNav from './components/BottomNav';
 
@@ -23,6 +24,7 @@ import ChaptersView from './views/admin/ChaptersView';
 import LevelsView from './views/admin/LevelsView';
 import ImportView from './views/admin/ImportView';
 import UsersView from './views/admin/UsersView';
+import NotFoundView from './views/NotFoundView'; // F-02: Halaman 404 kustom
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 function RequireAuth() {
@@ -83,6 +85,7 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route element={<StudentLayout />}>
             <Route path="/belajar" element={<MapView />} />
+            <Route path="/leaderboard" element={<LeaderboardView />} />
             <Route path="/profil" element={<ProfileView />} />
           </Route>
           <Route path="/belajar/:levelId" element={<LessonView />} />
@@ -101,8 +104,9 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* ─── Fallback ─────────────────────────────────────── */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* ─── Fallback 404 ───────────────────────────────────── */}
+        {/* F-02: Ganti dari redirect ke '/' dengan halaman 404 informatif */}
+        <Route path="*" element={<NotFoundView />} />
       </Routes>
     </BrowserRouter>
   );

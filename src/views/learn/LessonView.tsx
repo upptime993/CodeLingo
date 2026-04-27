@@ -432,6 +432,7 @@ export default function LessonView() {
   const [heartsUsed, setHeartsUsed] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [resumedFrom, setResumedFrom] = useState(0); // for resume toast
+  const [flashColor, setFlashColor] = useState<'green' | 'red' | null>(null);
 
   // ── Load level + restore progress ──────────────────────────────────────────
   useEffect(() => {
@@ -454,6 +455,9 @@ export default function LessonView() {
         setResumedFrom(saved.questionIndex);
       }
       setPhase('question');
+    }).catch(() => {
+      // UX-02: Tampilkan error jika fetch gagal, jangan stuck di loading
+      setPhase('error' as Phase);
     });
   }, [levelId]);
 
@@ -489,11 +493,17 @@ export default function LessonView() {
     const correct = checkAnswer(currentQuestion, selected);
     setIsCorrect(correct);
     setPhase('feedback');
-    if (correct) setCorrectCount(c => c + 1);
-    else {
+    if (correct) {
+      setCorrectCount(c => c + 1);
+      try { navigator.vibrate?.(100); } catch { /* ignore */ }
+      setFlashColor('green');
+    } else {
       loseHeart();
       setHeartsUsed(h => h + 1);
+      try { navigator.vibrate?.([100, 50, 100]); } catch { /* ignore */ }
+      setFlashColor('red');
     }
+    setTimeout(() => setFlashColor(null), 150);
     // Update save with latest
     if (levelId) saveProgress(levelId, { questionIndex, correctCount: correct ? correctCount + 1 : correctCount, heartsUsed: correct ? heartsUsed : heartsUsed + 1 });
   }, [currentQuestion, selected, checkAnswer, questionIndex, correctCount, heartsUsed, levelId]);
@@ -504,14 +514,20 @@ export default function LessonView() {
     if (nextIndex >= totalQuestions) {
       // Done — clear save and submit
       if (levelId) clearProgress(levelId);
-      const corrTotal = correctCount + (isCorrect ? 1 : 0);
-      const score = Math.round((corrTotal / totalQuestions) * 100);
+      // BUG-02: correctCount já inclui o último acerto via re-render — não adicionar isCorrect novamente
+      const score = Math.round((correctCount / totalQuestions) * 100);
       progressApi.complete({ levelId: level._id, score, heartsUsed })
         .then(({ xpGained, user: updatedUser }) => {
           updateUser(updatedUser);
           navigate(`/hasil/${level._id}`, {
-            state: { xpGained, score, correctCount: corrTotal, totalQuestions },
+            state: { xpGained, score, correctCount, totalQuestions },
             replace: true,
+          });
+        })
+        .catch(() => {
+          // BUG-03: Tangani kegagalan API agar user tidak stuck
+          import('react-hot-toast').then(({ default: toast }) => {
+            toast.error('Gagal menyimpan progress. Coba lagi!');
           });
         });
     } else {
@@ -530,13 +546,21 @@ export default function LessonView() {
           state: { xpGained, score: 100, correctCount: 0, totalQuestions: 0, isTheory: true },
           replace: true,
         });
+      })
+      .catch(() => {
+        // BUG-03: Tangani kegagalan API di theory complete
+        import('react-hot-toast').then(({ default: toast }) => {
+          toast.error('Gagal menyimpan progress. Coba lagi!');
+        });
       });
   };
 
   // ── Exit with save ─────────────────────────────────────────────────────────
   const handleExit = () => {
-    // Progress already saved via useEffect, just navigate
-    navigate('/belajar');
+    // GAP-01: Konfirmasi sebelum keluar agar user tidak tidak sengaja exit
+    if (window.confirm('Yakin mau keluar? Progress kamu di soal ini sudah tersimpan.')) {
+      navigate('/belajar');
+    }
   };
 
   // ── Check if "Cek Jawaban" should be enabled ────────────────────────────────
@@ -553,6 +577,55 @@ export default function LessonView() {
     return selected.trim() !== '' && selected !== '{}' && selected !== '[]';
   }, [selected, currentQuestion]);
 
+  // ITEM 4B: Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Abaikan jika user sedang mengetik di input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'Escape') {
+        handleExit();
+        return;
+      }
+
+      if (phase === 'question') {
+        if (['1', '2', '3', '4'].includes(e.key)) {
+          const q = level?.questions?.[questionIndex];
+          if (q && q.type === 'multiple_choice' && q.options) {
+            const idx = parseInt(e.key) - 1;
+            if (idx >= 0 && idx < q.options.length) {
+              setSelected(q.options[idx]);
+            }
+          }
+        } else if ((e.key === 'Enter' || e.code === 'Space')) {
+          e.preventDefault();
+          if (canCheck()) handleCheck();
+        }
+      } else if (phase === 'feedback' || phase === 'theory') {
+        if (e.key === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          if (phase === 'theory') handleTheoryComplete();
+          else handleNext();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, canCheck, handleCheck, handleNext, handleTheoryComplete, handleExit, level, questionIndex]);
+
+  // UX-02: Tampilkan error state jika fetch level gagal
+  if (phase === ('error' as Phase)) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4" style={{ background: 'var(--color-bg)' }}>
+        <p className="text-4xl">😵</p>
+        <p className="text-lg font-600">Gagal memuat soal.</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Coba refresh halaman atau kembali ke peta belajar.</p>
+        <button className="btn-primary" onClick={() => navigate('/belajar')}>Kembali ke Belajar</button>
+      </div>
+    );
+  }
+
   if (phase === 'loading') {
     return (
       <div className="min-h-dvh flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
@@ -565,6 +638,14 @@ export default function LessonView() {
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: 'var(--color-bg)' }}>
+      {/* 4A: Flash overlay */}
+      <AnimatePresence>
+        {flashColor && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+            className="fixed inset-0 pointer-events-none z-50"
+            style={{ background: flashColor === 'green' ? 'rgba(195,243,119,0.15)' : 'rgba(255,107,107,0.15)' }} />
+        )}
+      </AnimatePresence>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="w-full sticky top-0 z-50 px-4 pt-5 pb-3 flex items-center gap-3"
         style={{ background: 'rgba(14,19,24,0.97)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--color-border)' }}>
@@ -601,7 +682,7 @@ export default function LessonView() {
       </header>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <main className="flex-1 px-4 pt-6 pb-4 max-w-xl mx-auto w-full overflow-y-auto">
+      <main className="flex-1 px-4 pt-6 pb-32 max-w-xl mx-auto w-full overflow-y-auto">
         <AnimatePresence mode="wait">
           {/* Theory */}
           {phase === 'theory' && level?.theory && (
@@ -722,33 +803,35 @@ export default function LessonView() {
       </AnimatePresence>
 
       {/* ── Footer CTA ──────────────────────────────────────────────────────── */}
-      <footer className="px-4 pb-8 pt-2 max-w-xl mx-auto w-full">
-        {phase === 'theory' && (
-          <button id="btn-lanjut-theory" className="btn-primary w-full" onClick={handleTheoryComplete}>
-            Oke, Paham! Lanjut Kuis <ChevronRight size={18} />
-          </button>
-        )}
-        {phase === 'question' && (
-          <button id="btn-check" className="btn-primary w-full"
-            disabled={!canCheck()}
-            onClick={handleCheck}>
-            Cek Jawaban ✓
-          </button>
-        )}
-        {/* ↓ Tombol Lanjut selalu muncul saat feedback, baik benar MAUPUN salah */}
-        {phase === 'feedback' && (
-          <button id="btn-next"
-            className="w-full py-4 rounded-2xl font-800 text-base flex items-center justify-center gap-2"
-            style={{
-              background: isCorrect ? 'var(--color-primary)' : 'var(--color-coral)',
-              color: isCorrect ? '#1A2D00' : '#fff',
-              fontFamily: 'var(--font-display)',
-              cursor: 'pointer',
-            }}
-            onClick={handleNext}>
-            {questionIndex + 1 >= totalQuestions ? '🏁 Selesai!' : 'Lanjut →'}
-          </button>
-        )}
+      <footer className="fixed bottom-0 left-0 w-full p-4 bg-[var(--color-bg)]/95 backdrop-blur border-t border-[var(--color-border)] z-50">
+        <div className="max-w-xl mx-auto w-full">
+          {phase === 'theory' && (
+            <button id="btn-lanjut-theory" className="btn-primary w-full" onClick={handleTheoryComplete}>
+              Oke, Paham! Lanjut Kuis <ChevronRight size={18} />
+            </button>
+          )}
+          {phase === 'question' && (
+            <button id="btn-check" className="btn-primary w-full"
+              disabled={!canCheck()}
+              onClick={handleCheck}>
+              Cek Jawaban ✓
+            </button>
+          )}
+          {/* ↓ Tombol Lanjut selalu muncul saat feedback, baik benar MAUPUN salah */}
+          {phase === 'feedback' && (
+            <button id="btn-next"
+              className="w-full py-4 rounded-2xl font-800 text-base flex items-center justify-center gap-2"
+              style={{
+                background: isCorrect ? 'var(--color-primary)' : 'var(--color-coral)',
+                color: isCorrect ? '#1A2D00' : '#fff',
+                fontFamily: 'var(--font-display)',
+                cursor: 'pointer',
+              }}
+              onClick={handleNext}>
+              {questionIndex + 1 >= totalQuestions ? '🏁 Selesai!' : 'Lanjut →'}
+            </button>
+          )}
+        </div>
       </footer>
     </div>
   );

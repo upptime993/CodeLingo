@@ -3,26 +3,33 @@ import Course from '../models/Course.js';
 import Chapter from '../models/Chapter.js';
 import Level from '../models/Level.js';
 import Progress from '../models/Progress.js';
+import User from '../models/User.js'; // PERF-02: static import, bukan dynamic
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
-// ── GET /api/courses ─────────────────────────────────────────────────────────
+// PERF-01: Ganti N+1 query dengan aggregation pipeline (1 round-trip ke DB)
 router.get('/', async (_req, res: Response) => {
   try {
-    const courses = await Course.find({ isPublished: true }).sort({ order: 1 });
-
-    // Hitung jumlah bab dan level per kelas
-    const enriched = await Promise.all(
-      courses.map(async (c) => {
-        const chapters = await Chapter.find({ courseId: c._id });
-        const chapterIds = chapters.map((ch) => ch._id);
-        const levelsCount = await Level.countDocuments({ chapterId: { $in: chapterIds } });
-        return { ...c.toObject(), chaptersCount: chapters.length, levelsCount };
-      })
-    );
-
-    res.json(enriched);
+    const courses = await Course.aggregate([
+      { $match: { isPublished: true } },
+      { $sort: { order: 1 } },
+      {
+        $lookup: {
+          from: 'chapters',
+          localField: '_id',
+          foreignField: 'courseId',
+          as: 'chaptersArr',
+        },
+      },
+      {
+        $addFields: {
+          chaptersCount: { $size: '$chaptersArr' },
+        },
+      },
+      { $project: { chaptersArr: 0 } },
+    ]);
+    res.json(courses);
   } catch {
     res.status(500).json({ message: 'Gagal ambil data kelas.' });
   }
@@ -116,10 +123,10 @@ router.get('/levels/:id', requireAuth, async (_req, res: Response) => {
   }
 });
 
-// ── GET /api/courses/leaderboard ─────────────────────────────────────────────
-router.get('/leaderboard/top', async (_req, res: Response) => {
+// SEC-03: Tambahkan requireAuth agar data user tidak bocor ke publik
+router.get('/leaderboard/top', requireAuth, async (_req, res: Response) => {
   try {
-    const User = (await import('../models/User.js')).default;
+    // PERF-02: User sudah diimport secara static di atas
     const users = await User.find({ role: 'student' })
       .sort({ totalXp: -1 })
       .limit(20)

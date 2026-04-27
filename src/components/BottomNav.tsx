@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Map, User } from 'lucide-react';
+import { Map, User, Trophy } from 'lucide-react';
 
 const tabs = [
   { to: '/belajar', icon: Map, label: 'Belajar' },
+  { to: '/leaderboard', icon: Trophy, label: 'Peringkat' },
   { to: '/profil', icon: User, label: 'Profil' },
 ];
 

@@ -17,7 +17,15 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
   {
     username: { type: String, required: true, unique: true, trim: true, minlength: 3, maxlength: 30 },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    // U-08: Tambah validasi format email agar email asal-asalan tidak masuk DB
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, 'Format email tidak valid'],
+    },
     password: { type: String, required: true, minlength: 6 },
     avatar: { type: String, default: '' },
     role: { type: String, enum: ['student', 'admin'], default: 'student' },

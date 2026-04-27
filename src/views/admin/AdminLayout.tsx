@@ -86,7 +86,8 @@ export default function AdminLayout() {
           💻 Admin
         </span>
         <div className="flex gap-1">
-          {navItems.slice(0, 5).map(({ to, icon: Icon, label }) => (
+          {/* UX-05: Tampilkan semua item, bukan slice(0,5) yang memotong tab Pengguna */}
+          {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} end={to === '/admin'}
               style={({ isActive }) => ({
                 padding: '6px',
